@@ -5,8 +5,10 @@ from dataclasses import dataclass, field
 from hashlib import md5
 from pathlib import Path
 from io import StringIO
-from typing import Union, Optional
+from typing import Union, Optional, List
 
+PathOrStr = Union[Path, str]
+PathsOrStrs = Union[List[PathOrStr], PathOrStr]
 
 @dataclass
 class Datasource:
@@ -29,8 +31,8 @@ class Datasource:
     @classmethod
     def from_files(cls,
                    input_files: Union[dict, list],
-                   load_data_script: Optional[Union[Path, str]] = None,
-                   rules: Optional[Union[Path, str]] = None):
+                   load_data_script: Optional[PathsOrStrs] = None,
+                   rules: Optional[PathsOrStrs] = None):
         """Load a `Datasource` from specified files.
 
         The keys of `input_files` are the filenames to be referred to in the
@@ -50,7 +52,8 @@ class Datasource:
         an error is raised.
 
         `load_data_script` and `rules` can be either a string, which is used
-        literally, or a `pathlib.Path` to be read.
+        literally, or a `pathlib.Path` to be read. In addition a list of Paths
+        or strings can be passed.
 
         """
 
@@ -76,26 +79,39 @@ class Datasource:
             # Try to load automatically
             suffices = {p.suffix for p in full_input_files}
             auto_suffices = {".ttl", ".nt", ".nt.gz", ".ttl.gz"}
-            if suffices == auto_suffices:
-                load_data_script = "# Auto generated to load TTL files\n" + "\n".join([
+            if suffices <= auto_suffices:
+                load_data_script_str = "# Auto generated to load TTL files\n" + "\n".join([
                     f'import "$(dir.datasource)/{p}"' for p in input_files
                 ])
             else:
                 raise ValueError("No load_data_script given, and cannot automatically load {} files"
                                  .format(suffices - auto_suffices))
-        elif isinstance(load_data_script, Path):
-            load_data_script = load_data_script.read_text()
+        else:
+            load_data_script_str = _paths_or_strs_to_str(load_data_script)
 
         # XXX This should be more general -- i.e. not in this function?
         dir_setup = f'set dir.datasource "$(dir.root)/data/{datasource_name}/"'
-        load_data_script = dir_setup + "\n" + load_data_script
+        load_data_script_str = dir_setup + "\n" + load_data_script_str
 
         if rules is None:
             rules = ""
-        elif isinstance(rules, Path):
-            rules = rules.read_text()
+        else:
+            rules = _paths_or_strs_to_str(rules)
 
-        return Datasource(full_input_files, load_data_script, rules)
+        return Datasource(full_input_files, load_data_script_str, rules)
+
+
+def _paths_or_strs_to_str(item_or_items: PathsOrStrs):
+    items = (
+        item_or_items if isinstance(item_or_items, list) else [item_or_items]
+    )
+    results = []
+    for item in items:
+        if isinstance(item, Path):
+            results += [item.read_text()]
+        else:
+            results += [item]
+    return "\n".join(results)
 
 
 def load_datasource(path: Path):

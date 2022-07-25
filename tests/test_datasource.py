@@ -70,6 +70,29 @@ class TestDatasourceFromFilesCustomLoadDataScript:
 
         assert ds.load_data_script.endswith(load_data_script.read_text())
 
+    def test_loads_csv_with_multiple_load_script(self):
+        input_file = self.DATASOURCE_FOLDER / "data.csv"
+        load_data_script_1 = self.DATASOURCE_FOLDER / "load_data.rdfox"
+        load_data_script_2 = self.DATASOURCE_FOLDER / "load_data_2.rdfox"
+        ds = Datasource.from_files(
+            [input_file], [load_data_script_1, load_data_script_2]
+        )
+
+        assert load_data_script_1.read_text() in ds.load_data_script
+        assert load_data_script_2.read_text() in ds.load_data_script
+
+    def test_loads_csv_with_multiple_rules(self):
+        input_file = self.DATASOURCE_FOLDER / "data.csv"
+        load_data_script = self.DATASOURCE_FOLDER / "load_data.rdfox"
+        rules_1 = self.DATASOURCE_FOLDER / "map.dlog"
+        rules_2 = self.DATASOURCE_FOLDER / "map_2.dlog"
+        ds = Datasource.from_files(
+            [input_file], load_data_script, rules=[rules_1, rules_2]
+        )
+
+        assert rules_1.read_text() in ds.rules
+        assert rules_2.read_text() in ds.rules
+
     def test_renames_input_files_with_dict(self):
         input_file = self.DATASOURCE_FOLDER / "data.csv"
         load_data_script = self.DATASOURCE_FOLDER / "load_data.rdfox"
