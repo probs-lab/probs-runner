@@ -3,7 +3,7 @@ prefix simple: <https://ukfires.org/probs/ontology/data/simple/>
 
 dsource register "Simple"                                           \
     type    delimitedFile                                           \
-    file    "$(dir.root)/data/sample_datasource_simple/data.csv"    \
+    file    "$(dir.datasource)/data.csv"                            \
     header  true                                                    \
     quote   '"'
 

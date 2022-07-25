@@ -34,15 +34,20 @@ class TestDatasourceFromFolder:
         return load_datasource(self.DATASOURCE_FOLDER)
 
     def test_has_load_data(self, datasource):
-        assert datasource.load_data_script.startswith("prefix ufrd:")
+        assert "prefix ufrd: <" in datasource.load_data_script
 
     def test_has_rules(self, datasource):
         assert datasource.rules.startswith(":Object[?ObjectID]")
 
     def test_has_input_files(self, datasource):
-        assert datasource.input_files == {
-            "data/sample_datasource_simple/data.csv": self.DATASOURCE_FOLDER / "data.csv"
-        }
+        assert len(datasource.input_files) == 1
+        target_path, source_path = list(datasource.input_files.items())[0]
+        assert source_path == self.DATASOURCE_FOLDER / "data.csv"
+        assert target_path.name == "data.csv"
+
+        # Check datasource path matches setting for $(dir.datasource)
+        datasource_path = target_path.parent.name
+        assert datasource_path in datasource.load_data_script
 
 
 class TestDatasourceFromFilesCustomLoadDataScript:
