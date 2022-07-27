@@ -151,3 +151,10 @@ def test_datasource_raises_error_for_file_objects_in_list(tmp_path):
     with pytest.raises(ValueError):
         with open(p) as f:
             a = Datasource.from_files([f])
+
+
+def test_datasource_accepts_file_objects_in_dict(tmp_path):
+    p = tmp_path / "data.ttl"
+    p.write_text(":Farming a :Process .\n")
+    with open(p) as f:
+        a = Datasource.from_files({"data.ttl": f})

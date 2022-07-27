@@ -76,7 +76,7 @@ class Datasource:
                 input_files[source_path.name] = source_path
 
         # Generate a unique but stable name
-        datasource_name = md5(b"".join(bytes(p) for p in input_files.values())).hexdigest()
+        datasource_name = _compute_datasource_name(input_files.values())
 
         full_input_files = {
             (Path("data") / datasource_name / filename): source_path
@@ -120,6 +120,21 @@ def _paths_or_strs_to_str(item_or_items: PathsOrStrs):
         else:
             results += [item]
     return "\n".join(results)
+
+
+def _compute_datasource_name(inputs):
+    """Calculate a unique identifier for a datasource based on INPUTS."""
+    parts = []
+    for inp in inputs:
+        if isinstance(inp, str):
+            parts.append(inp.encode())
+        if isinstance(inp, Path):
+            parts.append(bytes(inp))
+        elif hasattr(inp, 'name'):  # file objects
+            parts.append(inp.name.encode())
+        else:  # fallback
+            parts.append(str(id(inp)).encode())
+    return md5(b"".join(parts)).hexdigest()
 
 
 def load_datasource(path: Path):
