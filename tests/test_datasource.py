@@ -138,6 +138,16 @@ def test_datasource_reuses_same_path_with_different_rules():
     b = Datasource.from_files(["a.ttl"], rules="b")
     assert a.input_files == b.input_files
     assert a != b
+
+
 def test_datasource_errors_for_missing_folder():
     with pytest.raises(NotADirectoryError):
         load_datasource(Path("MISSING_FOLDER"))
+
+
+def test_datasource_raises_error_for_file_objects_in_list(tmp_path):
+    p = tmp_path / "data.ttl"
+    p.write_text(":Farming a :Process .\n")
+    with pytest.raises(ValueError):
+        with open(p) as f:
+            a = Datasource.from_files([f])

@@ -36,10 +36,13 @@ class Datasource:
         """Load a `Datasource` from specified files.
 
         The keys of `input_files` are the filenames to be referred to in the
-        `load_data_script`; the values are the paths to the source file.
+        `load_data_script`; the values are the paths to the source file, or
+        file objects to be read from directly.
 
         Alternatively, a `input_files` can be a list, in which case the name
-        (without directory) of each path is used as the copied filename.
+        (without directory) of each path is used as the copied filename. In
+        this case file objects cannot be used, since they do not in general
+        have a filename associated with them.
 
         In either case, the files specified in `input_files` are copied in to
         the RDFox working directory under a uniquely-named folder for the
@@ -61,6 +64,11 @@ class Datasource:
             input_files_list = input_files
             input_files = {}
             for source_path in input_files_list:
+                if not isinstance(source_path, (str, Path)):
+                    raise ValueError(
+                        "Source paths in list must be filenames or Path objects. "
+                        "Pass a dictionary to specify filenames for file inputs."
+                    )
                 source_path = Path(source_path)
                 if source_path.name in input_files:
                     raise ValueError("Duplicate path name in list; use dict to specify "
