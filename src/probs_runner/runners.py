@@ -103,8 +103,8 @@ def probs_convert_data(
 ) -> None:
     """Load `datasources`, convert to RDF and copy result to `output_path`.
 
-    :param datasources: list of Datasource
-    :param output_path: path to save the data
+    :param datasources: List of :py:class:`Datasource` objects describing inputs
+    :param output_path: Path to save the data
     :param working_dir: Path to setup rdfox in, defaults to a temporary directory
     :param script_source_dir: Path to copy scripts from
     """
@@ -218,6 +218,11 @@ def probs_endpoint(
     use_default_namespaces=True,
 ) -> Iterator:
     """Load `enhanced_data_path`, and start endpoint.
+
+    This is a context manager. Use it as::
+
+        with probs_endpoint(...) as rdfox:
+            results = rdfox.query(...)
 
     :param enhanced_data_path: path to probs_original_data.nt.gz
     :param working_dir: Path to setup rdfox in, defaults to a temporary directory

@@ -1,5 +1,6 @@
 from .runners import (
     probs_convert_data,
+    probs_validate_data,
     probs_enhance_data,
     probs_endpoint,
     answer_queries,
@@ -12,6 +13,7 @@ from .namespace import PROBS, PROV, QUANTITYKIND, NAMESPACES
 __all__ = [
     "PRObsEndpoint",
     "probs_convert_data",
+    "probs_validate_data",
     "probs_enhance_data",
     "probs_endpoint",
     "answer_queries",
