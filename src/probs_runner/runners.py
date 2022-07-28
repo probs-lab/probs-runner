@@ -40,25 +40,16 @@ except (ImportError, AttributeError):
     importlib_resources_files = importlib_resources.files
 
 import pandas as pd
-from rdflib import Namespace
-from rdflib.namespace import RDF, RDFS
 
 from rdfox_runner import RDFoxRunner, RDFoxEndpoint
 
 from .datasource import Datasource
-from .namespace import PROBS
+from .namespace import PROBS, NAMESPACES
+from .endpoint import PRObsEndpoint
 
 logger = logging.getLogger(__name__)
 
 
-NAMESPACES = {
-    "": PROBS,
-    "probs": PROBS,
-    "rdf": RDF,
-    "rdfs": RDFS,
-    "prov": Namespace("http://www.w3.org/ns/prov#"),
-    "quantitykind": Namespace("http://qudt.org/vocab/quantitykind/"),
-}
 
 
 DEFAULT_PORT = 12112
@@ -122,9 +113,10 @@ def probs_convert_data(
     _add_datasources_to_input_files(input_files, datasources)
     script = ["exec scripts/data-conversion/master"]
 
-    with RDFoxRunner(input_files, script, NAMESPACES, working_dir=working_dir) as rdfox:
+    runner = RDFoxRunner(input_files, script, working_dir=working_dir)
+    with runner:
         logger.debug("probs_convert_data: RDFox runner done")
-        shutil.copy(rdfox.files("data/probs_original_data.nt.gz"), output_path)
+        shutil.copy(runner.files("data/probs_original_data.nt.gz"), output_path)
         logger.debug("probs_convert_data: Copy data done")
 
     # Should somehow signal success or failure
@@ -158,7 +150,7 @@ def probs_validate_data(
 
     script = ["exec scripts/data-validation/master"]
 
-    with RDFoxRunner(input_files, script, NAMESPACES, working_dir=working_dir) as rdfox:
+    with RDFoxRunner(input_files, script, working_dir=working_dir):
         logger.debug("probs_validate_data: RDFox runner done")
         # shutil.copy(rdfox.files("data/probs_enhanced_data.nt.gz"), output_path)
         # logger.debug("probs_validate_data: Copy data done")
@@ -207,9 +199,10 @@ def probs_enhance_data(
 
     script = ["exec scripts/data-enhancement/master"]
 
-    with RDFoxRunner(input_files, script, NAMESPACES, working_dir=working_dir) as rdfox:
+    runner = RDFoxRunner(input_files, script, working_dir=working_dir)
+    with runner:
         logger.debug("probs_enhance_data: RDFox runner done")
-        shutil.copy(rdfox.files("data/probs_enhanced_data.nt.gz"), output_path)
+        shutil.copy(runner.files("data/probs_enhanced_data.nt.gz"), output_path)
         logger.debug("probs_enhance_data: Copy data done")
 
     # Should somehow signal success or failure
@@ -259,24 +252,28 @@ def probs_endpoint(
         "exec scripts/reasoning/master",
     ]
 
+    endpoint = PRObsEndpoint(ns)
     with RDFoxRunner(
-        input_files, script, ns, working_dir=working_dir, wait="endpoint"
-    ) as rdfox:
-        yield rdfox
+            input_files,
+            script,
+            working_dir=working_dir,
+            wait="endpoint",
+            endpoint=endpoint):
+        yield endpoint
 
 
 def connect_to_endpoint(
         url,
         namespaces=None,
         use_default_namespaces=True,
-):
+) -> PRObsEndpoint:
     """Connect to an existing endpoint."""
 
     ns = NAMESPACES.copy() if use_default_namespaces else {}
     if namespaces is not None:
         ns.update(namespaces)
 
-    endpoint = RDFoxEndpoint(ns)
+    endpoint = PRObsEndpoint(ns)
     endpoint.connect(url)
     return endpoint
 
