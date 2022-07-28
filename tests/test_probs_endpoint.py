@@ -10,6 +10,7 @@ from probs_runner import (
     load_datasource,
     probs_endpoint,
     answer_queries,
+    Observation,
 )
 
 
@@ -75,7 +76,19 @@ def test_probs_endpoint_get_observations(tmp_path, script_source_dir):
             process=URIRef("http://example.org/unfccc/1."),
         )
 
-        assert result == [("=", 8551330)]
+        assert result == [
+            Observation(
+                uri=URIRef("http://example.org/Obs"),
+                time=PROBS.TimePeriod_YearOf2018,
+                region=PROBS.RegionGBR,
+                metric=QUANTITYKIND.Mass,
+                role=PROBS.ProcessOutput,
+                object_=URIRef("http://example.org/unfccc/N2O"),
+                process=URIRef("http://example.org/unfccc/1."),
+                measurement=8551330,
+                bound=PROBS.ExactBound,
+            )
+        ]
 
         result2 = rdfox.get_observations(
             time=PROBS.TimePeriod_YearOf2030,

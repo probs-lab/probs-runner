@@ -2,10 +2,28 @@
 
 """
 
-from typing import Optional, List, Tuple
+from dataclasses import dataclass
+from typing import Optional, List
+
 from rdflib import URIRef
 from rdfox_runner import RDFoxEndpoint
+
 from .namespace import PROBS
+
+
+@dataclass
+class Observation:
+    """A PRObs Observation."""
+
+    uri: URIRef
+    time: URIRef
+    region: URIRef
+    metric: URIRef
+    role: URIRef
+    object_: Optional[URIRef] = None
+    process: Optional[URIRef] = None
+    measurement: Optional[float] = None
+    bound: URIRef = PROBS.ExactBound
 
 
 class PRObsEndpoint(RDFoxEndpoint):
@@ -14,7 +32,7 @@ class PRObsEndpoint(RDFoxEndpoint):
     """
 
     query_obs_template = """
-        SELECT ?measurement ?bound
+        SELECT ?obs ?measurement ?bound
         WHERE {
             ?obs a :Observation ;
                  :hasTimePeriod ?time ;
@@ -34,7 +52,7 @@ class PRObsEndpoint(RDFoxEndpoint):
                          metric: URIRef,
                          role: URIRef,
                          object_: Optional[URIRef] = None,
-                         process: Optional[URIRef] = None) -> List[Tuple[str, float]]:
+                         process: Optional[URIRef] = None) -> List[Observation]:
         """Query for observations matching the given dimensions.
 
         :param time: value for `:hasTimePeriod`
@@ -44,8 +62,7 @@ class PRObsEndpoint(RDFoxEndpoint):
         :param object\\_: value for `:objectDefinedBy` (optional, depending on `role`)
         :param process: value for `:processDefinedBy` (optional, depending on `role`)
 
-        :returns: list of (`bound`, `measurement`) tuples, where `bound` is
-                  either ``"="`` or ``">"`` for an exact or lower bound respectively.
+        :returns: list of :py:class:`Observation` objects
 
         """
         bindings = {
@@ -62,11 +79,17 @@ class PRObsEndpoint(RDFoxEndpoint):
             other += ":processDefinedBy ?process ; "
             bindings["process"] = process
         query = self.query_obs_template % other
-        bound_strings = {
-            PROBS.LowerBound: ">",
-            PROBS.ExactBound: "=",
-        }
         return [
-            (bound_strings[row["bound"]], float(row["measurement"]))
+            Observation(
+                uri=row["obs"],
+                time=time,
+                region=region,
+                metric=metric,
+                role=role,
+                object_=object_,
+                process=process,
+                measurement=float(row["measurement"]),
+                bound=row["bound"],
+            )
             for row in self.query_records(query, initBindings=bindings)
         ]

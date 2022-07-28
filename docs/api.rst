@@ -42,3 +42,5 @@ PRObs endpoint
 
 .. autoclass:: probs_runner.PRObsEndpoint
    :members: get_observations
+
+.. autoclass:: probs_runner.Observation

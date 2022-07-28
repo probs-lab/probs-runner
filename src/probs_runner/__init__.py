@@ -6,12 +6,13 @@ from .runners import (
     answer_queries,
     connect_to_endpoint,
 )
-from .endpoint import PRObsEndpoint
+from .endpoint import PRObsEndpoint, Observation
 from .datasource import Datasource, load_datasource
 from .namespace import PROBS, PROV, QUANTITYKIND, NAMESPACES
 
 __all__ = [
     "PRObsEndpoint",
+    "Observation",
     "probs_convert_data",
     "probs_validate_data",
     "probs_enhance_data",
