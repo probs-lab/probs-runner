@@ -4,6 +4,7 @@ import time
 import urllib.parse
 import pathlib
 import logging
+import hashlib
 import click
 from rdflib import URIRef
 from rdflib.namespace import RDF, RDFS
@@ -246,7 +247,7 @@ def _inspect(rdfox, subject):
 @click.option(
     "--format",
     help="Output format (Graphviz or plain text).",
-    type=click.Choice(['text', 'graphviz'], case_sensitive=False)
+    type=click.Choice(['text', 'graphviz', 'html'], case_sensitive=False)
 )
 # @click.option(
 #     "-l",
@@ -265,7 +266,7 @@ def inspect(obj, inputs, subject, summary, format):
                         port=12130,
                         script_source_dir=script_source_dir) as rdfox:
 
-        if summary and format == "text":
+        if summary and format == "text" or format is None:
             print()
             result = rdfox.query_records(INSPECT_OBSERVATIONS_COUNT)
             for row in result:
@@ -281,6 +282,29 @@ def inspect(obj, inputs, subject, summary, format):
             for row in result:
                 _inspect_observation_graphviz(rdfox, row["Observation"])
             print("}")
+
+        elif summary and format == "html":
+            result = rdfox.query_records(INSPECT_OBSERVATIONS_ID)
+            print('<html lang="en"><title>PRObs observations</title><body>')
+            data = []
+            labels = {}
+            for row in result:
+                s, d, l = _inspect_observation_data(rdfox, row["Observation"])
+                data.append((s, d))
+                labels.update(l)
+            data = sorted(
+                data,
+                key=lambda d: (tuple(sorted(d[1]["probs:hasRegion"])),
+                               tuple(sorted(d[1]["probs:hasTimePeriod"])),
+                               tuple(sorted(d[1]["probs:hasRole"])),
+                               tuple(sorted(d[1].get("probs:objectDefinedBy", []))),
+                               tuple(sorted(d[1].get("probs:processDefinedBy", []))),
+                               tuple(sorted(d[1]["probs:metric"])),
+                               tuple(sorted(d[1]["probs:bound"])),
+                               tuple(sorted(d[1].get("probs:measurement", []))))
+            )
+            for s, d in data:
+                _inspect_observation_html(rdfox, s, d, labels)
 
         elif subject:
             for s in subject:
@@ -388,3 +412,83 @@ def _inspect_observation_graphviz(rdfox, subject):
                 elif "Inferred" in p:
                     attrs = "style=dashed, "
                 print(f'  "{subject}" -> "{v}" [{attrs}label="{p}"]')
+
+
+def _inspect_observation_data(rdfox, subject):
+    result = rdfox.query_records(INSPECT_QUERY,
+                                 n3=True,
+                                 initBindings={"s": URIRef(subject)})
+
+    if not result:
+        raise ValueError()
+
+    if subject.startswith(PROBS):
+        subject = "probs:" + subject[len(PROBS):]
+    else:
+        subject = f"<{subject}>"
+
+    values = {}
+    labels = {}
+    for x in result:
+        values.setdefault(x["p"], set())
+        values[x["p"]] |= {x["o"]}
+        if x["label"] is not None:
+            labels[x["o"]] = x["label"]
+
+    return subject, values, labels
+
+
+def _inspect_observation_html(rdfox, subject, values, labels):
+    label_values = [
+        "probs:hasRegion",
+        "probs:hasTimePeriod",
+        "probs:hasRole",
+    ]
+
+
+    def _label(x):
+        _, _, last_part = x.rpartition("/")
+        code = last_part.rstrip(">")
+        if x in labels:
+            return code + f' "{labels[x]}"'
+        return code
+
+    if subject.startswith("<http://ukfires.org/probs/data/"):
+        subject_label = subject[len("<http://ukfires.org/probs/data/"):].strip("<>")
+    else:
+        subject_label = subject.strip("<>")
+
+    print(f'<h1><a name="{anchor(subject)}">{subject_label}</h1>')
+    print('<table>')
+    rows = []
+    for p in label_values:
+        rows.append((p, "<br/>".join(values[p])))
+    if "probs:bound" in values:
+        vals = values["probs:bound"]
+        rows.append(("probs:bound", ("== " if "probs:ExactBound" in vals else "&gt;")))
+    if "probs:measurement" in values:
+        vals = values["probs:measurement"]
+        rows.append(("probs:measurement", str(list(vals)[0])))
+    rows.append(("object", "<br/>".join(
+        [f"{_label(x)}" for x in values.get("probs:objectDirectlyDefinedBy", [])] +
+        [f"({_label(x)})" for x in values.get("probs:objectInferredDefinedBy", [])]
+    )))
+    rows.append(("process", "<br/>".join(
+        [f"{_label(x)}" for x in values.get("probs:processDirectlyDefinedBy", [])] +
+        [f"({_label(x)})" for x in values.get("probs:processInferredDefinedBy", [])]
+    )))
+
+    for k, v in rows:
+        print(f'<tr><th>{k}</th><td>{v}</td></tr>')
+    print('</table>')
+
+    wdf = values.get("prov:wasDerivedFrom", [])
+    print("<p>prov:wasDerivedFrom")
+    print('<ul>')
+    for s in wdf:
+        print(f'<li><a href="#{anchor(s)}">{_label(s)}</a>')
+    print('</ul>')
+
+
+def anchor(subject):
+    return hashlib.md5(subject.encode()).hexdigest()
