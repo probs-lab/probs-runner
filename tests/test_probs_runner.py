@@ -18,7 +18,7 @@ from probs_runner import (
 NS = Namespace("https://ukfires.org/probs/ontology/data/simple/")
 
 
-def test_convert_data(tmp_path, script_source_dir):
+def test_convert_data_csv(tmp_path, script_source_dir):
     source = load_datasource(Path(__file__).parent / "sample_datasource_simple")
     output_filename = tmp_path / "output.nt.gz"
     probs_convert_data(
@@ -32,6 +32,26 @@ def test_convert_data(tmp_path, script_source_dir):
         result.parse(f, format="nt")
 
     # TODO: should make the test case use the proper ontology
+    assert (NS["Object-Bread"], PROBS.hasValue, Literal(6.0)) in result
+
+
+def test_convert_data_ttl(tmp_path, script_source_dir):
+    source = load_datasource(Path(__file__).parent / "sample_datasource_ttl")
+    output_filename = tmp_path / "output.nt.gz"
+    probs_convert_data(
+        [source], output_filename, tmp_path / "working", script_source_dir
+    )
+
+    # Should check for success or failure
+
+    result = Graph()
+    with gzip.open(output_filename, "r") as f:
+        result.parse(f, format="nt")
+
+    # TODO: should make the test case use the proper ontology
+    print(result.serialize(format="ttl").decode())
+    print(PROBS.hasValue)
+    print(list(result.triples((NS["Object-Bread"], None, None))))
     assert (NS["Object-Bread"], PROBS.hasValue, Literal(6.0)) in result
 
 

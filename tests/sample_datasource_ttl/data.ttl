@@ -1,0 +1,4 @@
+@prefix probs: <https://ukfires.org/probs/ontology/> .
+@prefix : <https://ukfires.org/probs/ontology/data/simple/> .
+
+:Object-Bread probs:hasValue "6.0"^^xsd:double .

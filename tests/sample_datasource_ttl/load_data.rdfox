@@ -1,0 +1,4 @@
+# NB "../" is perhaps not ideal; import is relative to $(dir.facts) which is set
+# by probs scripts to data/
+
+import "../$(dir.datasource)/data.ttl"
