@@ -58,7 +58,7 @@ def cli(ctx, verbose, scripts, working_dir):
 
 @cli.command()
 @click.argument("inputs", nargs=-1, type=click.Path(exists=True, path_type=pathlib.Path))
-@click.argument("output", nargs=1, type=click.Path(exists=True, path_type=pathlib.Path))
+@click.argument("output", nargs=1, type=click.Path(path_type=pathlib.Path))
 @click.pass_obj
 def convert_data(obj, inputs, output):
     "Convert input data into PRObs RDF format."
