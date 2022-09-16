@@ -113,9 +113,17 @@ def probs_convert_data(
     _add_datasources_to_input_files(input_files, datasources)
     script = ["exec scripts/data-conversion/master"]
 
+    import time
     runner = RDFoxRunner(input_files, script, working_dir=working_dir)
     with runner:
         logger.debug("probs_convert_data: RDFox runner done")
+        logger.debug("probs_convert_data: data size %s", runner.files("data/probs_original_data.nt.gz").stat().st_size)
+        time.sleep(0.001)
+        logger.debug("probs_convert_data: data size %s", runner.files("data/probs_original_data.nt.gz").stat().st_size)
+        time.sleep(0.01)
+        logger.debug("probs_convert_data: data size %s", runner.files("data/probs_original_data.nt.gz").stat().st_size)
+        time.sleep(0.1)
+        logger.debug("probs_convert_data: data size %s", runner.files("data/probs_original_data.nt.gz").stat().st_size)
         shutil.copy(runner.files("data/probs_original_data.nt.gz"), output_path)
         logger.debug("probs_convert_data: Copy data done")
 
@@ -130,7 +138,7 @@ def probs_validate_data(
     """Load `original_data_path`, run data validation script.
 
     :param original_data_path: path to probs_original_data.nt.gz, or multiple paths to load
-    :param working_dir: Path to setup rdfox in, defaults to a temporary directory
+    :param working_dir: Path to setup runner in, defaults to a temporary directory
     :param script_source_dir: Path to copy scripts from
     """
 
@@ -199,9 +207,17 @@ def probs_enhance_data(
 
     script = ["exec scripts/data-enhancement/master"]
 
+    import time
     runner = RDFoxRunner(input_files, script, working_dir=working_dir)
     with runner:
         logger.debug("probs_enhance_data: RDFox runner done")
+        logger.debug("probs_enhance_data: data size %s", runner.files("data/probs_enhanced_data.nt.gz").stat().st_size)
+        time.sleep(0.001)
+        logger.debug("probs_enhance_data: data size %s", runner.files("data/probs_enhanced_data.nt.gz").stat().st_size)
+        time.sleep(0.01)
+        logger.debug("probs_enhance_data: data size %s", runner.files("data/probs_enhanced_data.nt.gz").stat().st_size)
+        time.sleep(0.1)
+        logger.debug("probs_enhance_data: data size %s", runner.files("data/probs_enhanced_data.nt.gz").stat().st_size)
         shutil.copy(runner.files("data/probs_enhanced_data.nt.gz"), output_path)
         logger.debug("probs_enhance_data: Copy data done")
 

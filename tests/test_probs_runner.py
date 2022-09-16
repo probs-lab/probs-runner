@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import shutil
 from pathlib import Path
 import gzip
 
@@ -24,6 +25,7 @@ def test_convert_data_csv(tmp_path, script_source_dir):
     probs_convert_data(
         [source], output_filename, tmp_path / "working", script_source_dir
     )
+    assert output_filename.stat().st_size > 0
 
     # Should check for success or failure
 
@@ -49,10 +51,30 @@ def test_convert_data_ttl(tmp_path, script_source_dir):
         result.parse(f, format="nt")
 
     # TODO: should make the test case use the proper ontology
-    print(result.serialize(format="ttl").decode())
-    print(PROBS.hasValue)
-    print(list(result.triples((NS["Object-Bread"], None, None))))
     assert (NS["Object-Bread"], PROBS.hasValue, Literal(6.0)) in result
+
+
+def test_convert_data_large_data_size(tmp_path, script_source_dir):
+    # Sometimes with big data files it seems that there can be a delay between
+    # RDFox finishing and the data actually being written.
+
+    # Generate a bigger data file in a copy of the data source
+    initial_datasource = Path(__file__).parent / "sample_datasource_simple"
+    temp_datasource = tmp_path / "datasource"
+    shutil.copytree(initial_datasource, temp_datasource)
+
+    with open(temp_datasource / "data.csv", "wt") as f:
+        f.write("Object,Value\n")
+        for i in range(100000):
+            f.write(f"Object{i},{i}\n")
+
+    source = load_datasource(temp_datasource)
+
+    output_filename = tmp_path / "output.nt.gz"
+    probs_convert_data(
+        [source], output_filename, tmp_path / "working", script_source_dir
+    )
+    assert output_filename.stat().st_size > 0
 
 
 def test_enhance_data(tmp_path, script_source_dir):
