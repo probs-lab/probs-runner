@@ -85,11 +85,17 @@ class Datasource:
 
         if load_data_script is None:
             # Try to load automatically
-            suffices = {p.suffix for p in full_input_files}
-            auto_suffices = {".ttl", ".nt", ".nt.gz", ".ttl.gz"}
+            paths_no_gz = {p.with_suffix("") if p.suffix == ".gz" else p
+                           for p in full_input_files}
+            suffices = {p.suffix for p in paths_no_gz}
+            auto_suffices = {".ttl", ".nt"}
             if suffices <= auto_suffices:
                 load_data_script_str = "# Auto generated to load TTL files\n" + "\n".join([
-                    f'import "$(dir.datasource)/{p}"' for p in input_files
+                    # NOTE: the `../` is because the PRObs scripts set
+                    # $(dir.facts) to "data/", and the import statement is
+                    # relative to this, but $(dir.datasource) already includes
+                    # this prefix so that it works with dsource mappings.
+                    f'import "../$(dir.datasource)/{p}"' for p in input_files
                 ])
             else:
                 raise ValueError("No load_data_script given, and cannot automatically load {} files"
@@ -140,22 +146,29 @@ def _compute_datasource_name(inputs):
 def load_datasource(path: Path):
     """Load a `Datasource` from path."""
 
-    if not path.is_dir():
-        raise NotADirectoryError(path)
+    load_data_script = None
+    rules = None
 
-    load_data_path = path / "load_data.rdfox"
-    if load_data_path.exists():
-        load_data_script = load_data_path
+    if path.is_dir():
+        load_data_path = path / "load_data.rdfox"
+        if load_data_path.exists():
+            load_data_script = load_data_path
+
+        map_path = path / "map.dlog"
+        if map_path.exists():
+            rules = map_path
+
+        data_files = list(path.glob("*.csv")) + list(path.glob("*.ttl"))
+
+    elif path.exists():
+        if path.suffix.lower() == ".dlog":
+            data_files = []
+            rules = path
+        else:
+            data_files = [path]
+
     else:
-        load_data_script = ""
-
-    map_path = path / "map.dlog"
-    if map_path.exists():
-        rules = map_path
-    else:
-        rules = ""
-
-    data_files = list(path.glob("*.csv")) + list(path.glob("*.ttl"))
+        raise FileNotFoundError(path)
 
     datasource = Datasource.from_files(data_files, load_data_script, rules)
     return datasource

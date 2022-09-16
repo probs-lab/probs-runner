@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import gzip
 import re
 from pathlib import Path
 import pytest
@@ -48,6 +49,23 @@ class TestDatasourceFromFolder:
         # Check datasource path matches setting for $(dir.datasource)
         datasource_path = target_path.parent.name
         assert datasource_path in datasource.load_data_script
+
+
+class TestDatasourceFromSingleFile:
+    def test_loads_data(self, tmp_path):
+        p = tmp_path / "data.ttl"
+        p.write_text(":Farming a :Process .\n")
+        ds = load_datasource(p)
+        assert 'import "../$(dir.datasource)/data.ttl"' in ds.load_data_script
+        assert ds.rules == ""
+
+    def test_loads_rules(self, tmp_path):
+        p = tmp_path / "rules.dlog"
+        a_rule = (":a[?x] :- :b[?x] .\n")
+        p.write_text(a_rule)
+        ds = load_datasource(p)
+        assert 'import' not in ds.load_data_script
+        assert ds.rules == a_rule
 
 
 class TestDatasourceFromFilesCustomLoadDataScript:
@@ -110,7 +128,15 @@ class TestDatasourceFromFilesCustomLoadDataScript:
         p = tmp_path / "data.ttl"
         p.write_text(":Farming a :Process .\n")
         ds = Datasource.from_files([p])
-        assert 'import "$(dir.datasource)/data.ttl"' in ds.load_data_script
+        assert 'import "../$(dir.datasource)/data.ttl"' in ds.load_data_script
+        assert ds.rules == ""
+
+    def test_automatically_loads_nt_gz(self, tmp_path):
+        p = tmp_path / "data.nt.gz"
+        with gzip.open(p, "wt") as f:
+            f.write(":Farming a :Process .\n")
+        ds = Datasource.from_files([p])
+        assert 'import "../$(dir.datasource)/data.nt.gz"' in ds.load_data_script
         assert ds.rules == ""
 
 
@@ -141,7 +167,7 @@ def test_datasource_reuses_same_path_with_different_rules():
 
 
 def test_datasource_errors_for_missing_folder():
-    with pytest.raises(NotADirectoryError):
+    with pytest.raises(FileNotFoundError):
         load_datasource(Path("MISSING_FOLDER"))
 
 
