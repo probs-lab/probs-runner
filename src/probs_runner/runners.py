@@ -24,7 +24,7 @@ All of these functions accept some common options:
 
 from contextlib import contextmanager
 import logging
-from typing import Dict, ContextManager, Iterator
+from typing import Dict, Iterator, Union
 from io import StringIO
 import shutil
 from pathlib import Path
@@ -70,12 +70,8 @@ def _standard_input_files(script_source_dir):
         script_source_dir = Path(script_source_dir)
 
     # Standard files
-    input_files = {
-        "data/probs.fss": script_source_dir / "data/probs.fss",
-        "data/additional_info.ttl": script_source_dir / "data/additional_info.ttl",
+    input_files: Dict[str, Union[Path, StringIO]] = {
         "scripts/": script_source_dir / "scripts/",
-        # "scripts/shared": script_source_dir / "scripts/shared",
-        # "scripts/data-conversion": script_source_dir / "scripts/data-conversion",
     }
 
     return input_files
@@ -93,6 +89,21 @@ def _add_datasources_to_input_files(input_files, datasources):
             if tgt in input_files:
                 raise ValueError(f"Duplicate entry in input_files for '{tgt}'")
             input_files[tgt] = src
+
+
+def _add_files_to_input_files(input_files, module, paths):
+    paths_to_load = []
+    for path in (Path(x) for x in paths):
+        # Keep path.name in the filename, so it's easier to understand, but
+        # make sure it is unique using the full path hash.
+        unique_filename = md5(bytes(path)).hexdigest() + "_" + path.name
+        input_files["data/" + unique_filename] = path
+        paths_to_load.append(unique_filename)
+
+    load_data_path = f"scripts/{module}/load_data.rdfox"
+    input_files[load_data_path] = StringIO(
+        "\n".join(f"import {name}" for name in paths_to_load)
+    )
 
 
 def probs_convert_data(
@@ -144,17 +155,9 @@ def probs_validate_data(
 
     input_files = _standard_input_files(script_source_dir)
 
-    if isinstance(original_data_path, (list, tuple)):
-        paths_to_load = []
-        for path in (Path(x) for x in original_data_path):
-            input_files["data/" + path.name] = path
-            paths_to_load.append(path.name)
-        input_files["scripts/data-validation/input.rdfox"] = StringIO(
-            STANDARD_ENHANCEMENT_INPUT +
-            "\n".join(f"import {name}" for name in paths_to_load)
-        )
-    else:
-        input_files["data/probs_original_data.nt.gz"] = original_data_path
+    if not isinstance(original_data_path, (list, tuple)):
+        original_data_path = [original_data_path]
+    _add_files_to_input_files(input_files, "data-validation", original_data_path)
 
     script = ["exec scripts/data-validation/master"]
 
@@ -165,14 +168,6 @@ def probs_validate_data(
 
     # Should somehow signal success or failure
 
-# XXX This is a temporary hack -- the scripts should be updated to allow an easy customisation point
-STANDARD_ENHANCEMENT_INPUT = """
-# Import converted ontology and additional info
-import probs.fss
-import additional_info.ttl
-
-# Load converted data
-"""
 
 def probs_enhance_data(
     original_data_path,
@@ -190,20 +185,9 @@ def probs_enhance_data(
 
     input_files = _standard_input_files(script_source_dir)
 
-    if isinstance(original_data_path, (list, tuple)):
-        paths_to_load = []
-        for path in (Path(x) for x in original_data_path):
-            # Keep path.name in the filename, so it's easier to understand, but
-            # make sure it is unique using the full path hash.
-            unique_filename = md5(bytes(path)).hexdigest() + "_" + path.name
-            input_files["data/" + unique_filename] = path
-            paths_to_load.append(unique_filename)
-        input_files["scripts/data-enhancement/input.rdfox"] = StringIO(
-            STANDARD_ENHANCEMENT_INPUT +
-            "\n".join(f"import {name}" for name in paths_to_load)
-        )
-    else:
-        input_files["data/probs_original_data.nt.gz"] = original_data_path
+    if not isinstance(original_data_path, (list, tuple)):
+        original_data_path = [original_data_path]
+    _add_files_to_input_files(input_files, "data-enhancement", original_data_path)
 
     script = ["exec scripts/data-enhancement/master"]
 
@@ -257,16 +241,9 @@ def probs_endpoint(
 
     input_files = _standard_input_files(script_source_dir)
 
-    if isinstance(enhanced_data_path, (list, tuple)):
-        paths_to_load = []
-        for path in (Path(x) for x in enhanced_data_path):
-            input_files["data/" + path.name] = path
-            paths_to_load.append(path.name)
-        input_files["scripts/reasoning/input.rdfox"] = StringIO(
-            "\n".join(f"import {name}" for name in paths_to_load)
-        )
-    else:
-        input_files["data/probs_enhanced_data.nt.gz"] = enhanced_data_path
+    if not isinstance(enhanced_data_path, (list, tuple)):
+        enhanced_data_path = [enhanced_data_path]
+    _add_files_to_input_files(input_files, "reasoning", enhanced_data_path)
 
     script = [
         f'set endpoint.port "{int(port)}"',
