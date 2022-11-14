@@ -40,8 +40,8 @@ class PRObsEndpoint(RDFoxEndpoint):
                  :metric ?metric ;
                  :hasRole ?role ;
                  %s
-                 :measurement ?measurement ;
                  :bound ?bound .
+            OPTIONAL { ?obs :measurement ?measurement . }
         }
     """
 
@@ -79,6 +79,8 @@ class PRObsEndpoint(RDFoxEndpoint):
             other += ":processDefinedBy ?process ; "
             bindings["process"] = process
         query = self.query_obs_template % other
+        def _convert_measurement(value):
+            return float(value) if value is not None else float("nan")
         return [
             Observation(
                 uri=row["obs"],
@@ -88,7 +90,7 @@ class PRObsEndpoint(RDFoxEndpoint):
                 role=role,
                 object_=object_,
                 process=process,
-                measurement=float(row["measurement"]),
+                measurement=_convert_measurement(row["measurement"]),
                 bound=row["bound"],
             )
             for row in self.query_records(query, initBindings=bindings)
