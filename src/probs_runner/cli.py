@@ -1,11 +1,13 @@
 """Command-line tool for probs_runner."""
 
+import sys
 import time
 import urllib.parse
 import pathlib
 import logging
 import hashlib
 import click
+import rdflib
 from rdflib import URIRef
 from rdflib.namespace import RDF, RDFS
 
@@ -175,6 +177,71 @@ def endpoint(obj, inputs, port, query_files, console):
                 time.sleep(1)
         except KeyboardInterrupt:
             click.echo("Stopping endpoint")
+
+
+@cli.command()
+@click.argument("inputs", nargs=-1, type=click.Path(exists=True, path_type=pathlib.Path))
+@click.option(
+    "-p",
+    "--port",
+    help="RDFox endpoint port",
+    type=click.INT,
+)
+@click.option(
+    "-q",
+    "--query",
+    "query_text",  # Python argument name
+    help="SPARQL query string",
+)
+@click.option(
+    "-Q",
+    "--query-file",
+    "query_file",  # Python argument name
+    help="File to load query from",
+    type=click.File("r"),
+)
+@click.option(
+    "-f",
+    "--format",
+    "output_format",  # Python argument name
+    help="Output format",
+    default="ttl",
+)
+@click.pass_obj
+def query(obj, inputs, port, query_text, query_file, output_format):
+    """Start an RDFox endpoint based on INPUTS and answer SPARQL queries.
+
+    If --query or --query-file is not specified, read query from stdin.
+    """
+
+    if query_text is not None and query_file is not None:
+        raise click.UsageError("Cannot pass both --query and --query-file")
+    elif query_text is not None:
+        pass
+    elif query_file is not None:
+        query_text = query_file.read()
+    else:
+        query_text = sys.stdin.read()
+
+    script_source_dir = obj["script_source_dir"]
+    click.echo("Starting endpoint...", err=True)
+    with probs_endpoint(inputs,
+                        port=port,
+                        script_source_dir=script_source_dir) as rdfox:
+
+        # XXX maybe there is a better way of getting RDFox to return data in a
+        # format that is directly interpreted by rdflib as a graph. For now, do
+        # it manually based on the returned variable names.
+        result = rdfox.query(query_text)
+
+    if [str(v) for v in result.vars] == ["S", "P", "O"]:
+        # construct graph
+        g = rdflib.Graph()
+        g.addN((s, p, o, g) for s, p, o in result)
+        sys.stdout.write(g.serialize(format=output_format).decode())
+    else:
+        for row in result:
+            print(row)
 
 
 INSPECT_QUERY = """
