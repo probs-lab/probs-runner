@@ -46,6 +46,7 @@ def cli(ctx, verbose, scripts, working_dir):
         logger.setLevel(level)
         logging.basicConfig()
         logging.getLogger("rdfox_runner").setLevel(level)
+        logging.getLogger("requests").setLevel(level)
         logger.info("Set logging level %s", level)
 
     # ensure that ctx.obj exists and is a dict (in case `cli()` is called
