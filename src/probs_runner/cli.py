@@ -12,7 +12,14 @@ from rdflib import URIRef
 from rdflib.namespace import RDF, RDFS
 
 from .namespace import PROBS
-from .runners import NAMESPACES, probs_convert_data, probs_validate_data, probs_enhance_data, probs_endpoint
+from .runners import (
+    NAMESPACES,
+    probs_convert_data,
+    probs_validate_data,
+    probs_enhance_data,
+    probs_endpoint,
+    probs_answer_query,
+)
 from .datasource import load_datasource
 
 
@@ -203,12 +210,19 @@ def endpoint(obj, inputs, port, query_files, console):
 @click.option(
     "-f",
     "--format",
-    "output_format",  # Python argument name
+    "answer_format",  # Python argument name
     help="Output format",
-    default="ttl",
+    default="text/turtle",
+)
+@click.option(
+    "-o",
+    "--output",
+    help="Output file (default: standard output)",
+    type=click.Path(writable=True, path_type=pathlib.Path),
+    default=None,
 )
 @click.pass_obj
-def query(obj, inputs, port, query_text, query_file, output_format):
+def query(obj, inputs, port, query_text, query_file, answer_format, output):
     """Start an RDFox endpoint based on INPUTS and answer SPARQL queries.
 
     If --query or --query-file is not specified, read query from stdin.
@@ -223,25 +237,19 @@ def query(obj, inputs, port, query_text, query_file, output_format):
     else:
         query_text = sys.stdin.read()
 
+    if output is None:
+        output = sys.stdout.buffer
+
     script_source_dir = obj["script_source_dir"]
     click.echo("Starting endpoint...", err=True)
-    with probs_endpoint(inputs,
-                        port=port,
-                        script_source_dir=script_source_dir) as rdfox:
-
-        # XXX maybe there is a better way of getting RDFox to return data in a
-        # format that is directly interpreted by rdflib as a graph. For now, do
-        # it manually based on the returned variable names.
-        result = rdfox.query(query_text)
-
-    if [str(v) for v in result.vars] == ["S", "P", "O"]:
-        # construct graph
-        g = rdflib.Graph()
-        g.addN((s, p, o, g) for s, p, o in result)
-        sys.stdout.write(g.serialize(format=output_format).decode())
-    else:
-        for row in result:
-            print(row)
+    probs_answer_query(
+        inputs,
+        query_text,
+        output,
+        answer_format=answer_format,
+        port=port,
+        script_source_dir=script_source_dir,
+    )
 
 
 INSPECT_QUERY = """
