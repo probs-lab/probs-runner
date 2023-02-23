@@ -24,7 +24,7 @@ All of these functions accept some common options:
 
 from contextlib import contextmanager
 import logging
-from typing import Dict, ContextManager, Iterator
+from typing import Dict, ContextManager, Iterator, Iterable
 from io import StringIO
 import shutil
 from pathlib import Path
@@ -66,7 +66,7 @@ def _standard_input_files(script_source_dir):
                 "The probs_ontology package is not installed, and no script_source_dir has been specified."
             )
 
-    if not isinstance(script_source_dir, Path):
+    if isinstance(script_source_dir, str):
         script_source_dir = Path(script_source_dir)
 
     # Standard files
@@ -283,6 +283,66 @@ def probs_endpoint(
         yield endpoint
 
 
+def probs_answer_query(
+    inputs,
+    query,
+    output,
+    answer_format=None,
+    **kwargs,
+):
+    """Answer a single query using `probs_endpoint`.
+
+    :param inputs: path or list of paths to input data/rules
+    :param query: query text
+    :param output: file or path to write result to
+    :param answer_format: MIME type to request from RDFox
+
+    Other keyword arguments are passed to `probs_endpoint`.
+    """
+
+    probs_answer_queries(inputs, [(query, output)], answer_format, **kwargs)
+
+
+def probs_answer_queries(
+    inputs,
+    queries_outputs,
+    answer_format=None,
+    **kwargs,
+):
+    """Answer queries using `probs_endpoint`.
+
+    :param inputs: path or list of paths to input data/rules
+    :param queries_outputs: list of (query_text, output_file_or_path)
+    :param answer_format: MIME type to request from RDFox
+
+    Other keyword arguments are passed to `probs_endpoint`.
+    """
+
+    with probs_endpoint(inputs, **kwargs) as rdfox:
+        for query, output in queries_outputs:
+            res = rdfox.query_raw(query, answer_format=answer_format)
+            write_output(res.iter_content(chunk_size=8192), output)
+
+
+def write_output(stream: Iterable, output):
+    """Write from `stream` to `output`, which can be a file or path.
+
+    Paths ending in `.gz` are written with gzip compression.
+    """
+    if hasattr(output, "write"):
+        for chunk in stream:
+            output.write(chunk)
+    elif str(output).endswith(".gz"):
+        import gzip
+        with gzip.open(output, "wb") as f:
+            for chunk in stream:
+                f.write(chunk)
+    else:
+        with open(output, "wb") as f:
+            for chunk in stream:
+                f.write(chunk)
+
+
 def connect_to_endpoint(
         url,
         namespaces=None,
@@ -297,30 +357,3 @@ def connect_to_endpoint(
     endpoint = PRObsEndpoint(ns)
     endpoint.connect(url)
     return endpoint
-
-
-def answer_queries(rdfox, queries) -> Dict:
-    """Answer queries from RDFox endpoint.
-
-    :param rdfox: RDFox endpoint
-    :param queries: Dict of {query_name: query_text}, or list of [query_text].
-    :return: Dict of {query_name: result}
-    """
-    if isinstance(queries, list):
-        queries = {i: query_text for i, query_text in enumerate(queries)}
-    elif not isinstance(queries, dict):
-        raise ValueError("query should be list or dict")
-
-    answers_df = {
-        query_name: rdfox.query_records(query_text)
-        for query_name, query_text in queries.items()
-    }
-
-    with pd.option_context(
-        "display.max_rows", 100, "display.max_columns", 10, "display.max_colwidth", 200
-    ):
-        for k, v in answers_df.items():
-            logger.info("Results from query %s:", k)
-            logger.info("\n%s", pd.DataFrame.from_records(v))
-
-    return answers_df

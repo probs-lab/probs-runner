@@ -9,7 +9,6 @@ from probs_runner import (
     PROBS, QUANTITYKIND,
     load_datasource,
     probs_endpoint,
-    answer_queries,
     Observation,
 )
 
@@ -38,10 +37,6 @@ def test_probs_endpoint(tmp_path, script_source_dir):
             {"obj": NS["Object-Bread"], "value": 6.0},
             {"obj": NS["Object-Cake"], "value": 3.0},
         ]
-
-        # Test answer_queries convenience function
-        result2 = answer_queries(rdfox, {"q1": query})
-        assert result2["q1"] == result
 
 
 def test_probs_endpoint_get_observations(tmp_path, script_source_dir):

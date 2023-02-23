@@ -3,8 +3,11 @@
 import shutil
 from pathlib import Path
 import gzip
+from io import BytesIO
 
 from rdflib import Namespace, Graph, Literal
+
+import pytest
 
 from probs_runner import (
     PROBS,
@@ -12,7 +15,7 @@ from probs_runner import (
     probs_convert_data,
     probs_enhance_data,
     probs_endpoint,
-    answer_queries,
+    probs_answer_query,
 )
 
 
@@ -169,7 +172,8 @@ def test_enhance_data_multiple_inputs_with_name_clash(tmp_path, script_source_di
     assert "Object-Cheese>" in result
 
 
-def test_probs_endpoint(tmp_path, script_source_dir):
+@pytest.fixture
+def test_data_gz(tmp_path):
     output_filename = tmp_path / "output.nt.gz"
     with gzip.open(output_filename, "wt") as f:
         f.writelines(
@@ -178,11 +182,15 @@ def test_probs_endpoint(tmp_path, script_source_dir):
                 '<https://ukfires.org/probs/ontology/data/simple/Object-Cake> <https://ukfires.org/probs/ontology/hasValue> "3"^^<http://www.w3.org/2001/XMLSchema#double> .',
             ]
         )
+    return output_filename
+
+
+def test_probs_endpoint(tmp_path, test_data_gz, script_source_dir):
 
     # Now query the converted data
     query = "SELECT ?obj ?value WHERE { ?obj :hasValue ?value } ORDER BY ?obj"
     with probs_endpoint(
-        output_filename, tmp_path / "working_reasoning", script_source_dir, port=12159
+        test_data_gz, tmp_path / "working_reasoning", script_source_dir, port=12159
     ) as rdfox:
         result = rdfox.query_records(query)
 
@@ -191,6 +199,27 @@ def test_probs_endpoint(tmp_path, script_source_dir):
             {"obj": NS["Object-Cake"], "value": 3.0},
         ]
 
-        # Test answer_queries convenience function
-        result2 = answer_queries(rdfox, {"q1": query})
-        assert result2["q1"] == result
+
+def test_probs_answer_query_file(test_data_gz, script_source_dir):
+    f = BytesIO()
+    query = "SELECT ?value WHERE { ?obj :hasValue ?value } ORDER BY ?value LIMIT 1"
+    probs_answer_query(test_data_gz, query, f, script_source_dir=script_source_dir)
+    assert f.getvalue() == b"?value\n3e+0\n"
+
+
+@pytest.mark.parametrize("format,expected", [
+    ("csv", b"value\r\n3\r\n"),
+    ("json", b'{ "head":'),
+])
+def test_probs_answer_query_file_formats(test_data_gz, script_source_dir, format, expected):
+    f = BytesIO()
+    query = "SELECT ?value WHERE { ?obj :hasValue ?value } ORDER BY ?value LIMIT 1"
+    probs_answer_query(test_data_gz, query, f, answer_format=format, script_source_dir=script_source_dir)
+    assert f.getvalue().startswith(expected)
+
+
+def test_probs_answer_query_path(tmp_path, test_data_gz, script_source_dir):
+    query = "SELECT ?value WHERE { ?obj :hasValue ?value } ORDER BY ?value LIMIT 1"
+    output = tmp_path / "result.nt"
+    probs_answer_query(test_data_gz, query, output, script_source_dir=script_source_dir)
+    assert output.read_bytes() == b"?value\n3e+0\n"

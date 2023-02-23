@@ -3,7 +3,8 @@ from .runners import (
     probs_validate_data,
     probs_enhance_data,
     probs_endpoint,
-    answer_queries,
+    probs_answer_queries,
+    probs_answer_query,
     connect_to_endpoint,
 )
 from .endpoint import PRObsEndpoint, Observation
@@ -17,7 +18,8 @@ __all__ = [
     "probs_validate_data",
     "probs_enhance_data",
     "probs_endpoint",
-    "answer_queries",
+    "probs_answer_queries",
+    "probs_answer_query",
     "Datasource",
     "load_datasource",
     "PROBS",
