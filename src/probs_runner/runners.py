@@ -32,12 +32,12 @@ from tempfile import mkdtemp
 from hashlib import md5
 
 try:
-    import importlib.resources
-    importlib_resources_files = importlib.resources.files
+    from importlib.resources import files as importlib_resources_files
+    from importlib.abc import Traversable
 except (ImportError, AttributeError):
     # Try backported to PY<37 `importlib_resources`.
-    import importlib_resources
-    importlib_resources_files = importlib_resources.files
+    from importlib_resources import files as importlib_resources_files
+    from importlib_resources.abc import Traversable
 
 import pandas as pd
 
@@ -66,11 +66,11 @@ def _standard_input_files(script_source_dir):
                 "The probs_ontology package is not installed, and no script_source_dir has been specified."
             )
 
-    if not isinstance(script_source_dir, Path):
+    if isinstance(script_source_dir, str):
         script_source_dir = Path(script_source_dir)
 
     # Standard files
-    input_files: Dict[str, Union[Path, StringIO]] = {
+    input_files: Dict[str, Union[Traversable, StringIO]] = {
         "scripts/": script_source_dir / "scripts/",
     }
 
