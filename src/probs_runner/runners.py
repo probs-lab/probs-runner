@@ -71,6 +71,7 @@ def _standard_input_files(script_source_dir):
 
     # Standard files
     input_files: Dict[str, Union[Traversable, StringIO]] = {
+        "data/": script_source_dir / "data/",
         "scripts/": script_source_dir / "scripts/",
     }
 
