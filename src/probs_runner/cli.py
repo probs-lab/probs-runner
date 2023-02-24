@@ -212,7 +212,7 @@ def endpoint(obj, inputs, port, query_files, console):
     "--format",
     "answer_format",  # Python argument name
     help="Output format",
-    default="text/turtle",
+    default=None,
 )
 @click.option(
     "-o",
