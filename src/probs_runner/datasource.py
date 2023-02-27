@@ -1,25 +1,48 @@
-#!/usr/bin/env python3
+"""A Datasource collects information needed to load data into RDFox.
 
+The data can in general include:
+- Data files (e.g. csv or RDF data)
+- RDFox load scripts
+- Datalog rules
 
+Each Datasource object bundles a set of these three data types together.
+
+"""
+
+import os
 from dataclasses import dataclass, field
 from hashlib import md5
 from pathlib import Path
 from io import StringIO
-from typing import Union, Optional, List
+from typing import Union, Optional, IO, List
 
-PathOrStr = Union[Path, str]
-PathsOrStrs = Union[List[PathOrStr], PathOrStr]
+import logging
+_logger = logging.getLogger(__name__)
+
+
+FileSpec = Union[os.PathLike, str, IO]
+FileSpecs = Union[List[FileSpec], FileSpec]
 
 @dataclass
 class Datasource:
-    """Represent a set of input to `probs_convert_data`."""
+    """Represent a set of inputs to RDFox.
+
+    :param input_files: dictionary mapping identifiers (in the form of a
+    filename with suitable extension) to Paths, or file-like objects, which need
+    to be made available to RDFox.
+
+    :param load_data_script: RDFox script to load data files.
+
+    :param load_rules_script: RDFox script to load rules files.
+
+    """
 
     input_files: dict = field(default_factory=dict)
     load_data_script: str = ""
-    rules: str = ""
+    load_rules_script: str = ""
 
     @classmethod
-    def from_facts(cls, facts):
+    def from_facts(cls, facts: str):
         """Create a datasource from explicit list of facts."""
         hash = md5(facts.encode()).hexdigest()
         input_files = {
@@ -31,32 +54,40 @@ class Datasource:
     @classmethod
     def from_files(cls,
                    input_files: Union[dict, list],
-                   load_data_script: Optional[PathsOrStrs] = None,
-                   rules: Optional[PathsOrStrs] = None):
+                   load_data_script: Optional[FileSpecs] = None,
+                   load_rules_script: Optional[FileSpecs] = None,
+                   data_subdir: Optional[str]=None):
         """Load a `Datasource` from specified files.
 
         The keys of `input_files` are the filenames to be referred to in the
         `load_data_script`; the values are the paths to the source file, or
         file objects to be read from directly.
 
-        Alternatively, a `input_files` can be a list, in which case the name
-        (without directory) of each path is used as the copied filename. In
-        this case file objects cannot be used, since they do not in general
-        have a filename associated with them.
+        Alternatively, `input_files` can be a list, in which case the name
+        (without directory) of each path is used as the copied filename. In this
+        case file objects cannot be used, since they do not in general have a
+        filename associated with them.
 
         In either case, the files specified in `input_files` are copied in to
-        the RDFox working directory under a uniquely-named folder for the
-        Datasource. This location is made available to the load_data script via
-        the RDFox variable `dir.datasource`.
+        the RDFox working directory. If `data_subdir` is specified, data files
+        are nested within `data/{data_subdir}`. The RDFox shell variable
+        `dir.datasource` is set accordingly at the start of the `load_data` and
+        `load_rules` scripts.
 
         The `load_data_script` passed as an argument is used if given.
-        Otherwise, if all the paths to be loaded are .ttl files, they are loaded
-        automatically. If none of these options has produced a load_data script,
-        an error is raised.
+        Otherwise, a load_data script is generated automatically to load any of
+        `input_files` which can be directly read by RDFox (e.g. .ttl and .nt
+        files, and their compressed versions).
 
-        `load_data_script` and `rules` can be either a string, which is used
-        literally, or a `pathlib.Path` to be read. In addition a list of Paths
-        or strings can be passed.
+        The `load_rules_script` passed as an argument is used if given.
+        Otherwise, a load_rules script is generated automatically to load any of
+        `input_files` which look like Datalog rules (i.e. files ending in
+        .dlog).
+
+        `load_data_script` and `load_rules_script` can be either a string or
+        `pathlib.Path` path to be read, or a file-like object whose contents
+        should be read. In addition a list of these can be passed, in which case
+        their contents are concatenated.
 
         """
 
@@ -75,100 +106,141 @@ class Datasource:
                                      "different names")
                 input_files[source_path.name] = source_path
 
-        # Generate a unique but stable name
-        datasource_name = _compute_datasource_name(input_files.values())
+        dest_dir = Path("data")
+        if data_subdir is not None:
+            dest_dir = dest_dir / data_subdir
+            dir_setup = f'set dir.datasource "\\$\\(dir.facts\\)/{data_subdir}/"\n'
+        else:
+            dir_setup = 'set dir.datasource "\\$\\(dir.facts\\)/"\n'
+
+        input_files = {Path(k): v for k, v in input_files.items()}
 
         full_input_files = {
-            (Path("data") / datasource_name / filename): source_path
-            for filename, source_path in input_files.items()
+            dest_dir / filename: input_file
+            for filename, input_file in input_files.items()
         }
 
+        # Keep track of files that haven't been used, if we are automatically
+        # loading them.
+        if load_data_script is None and load_rules_script is None:
+            not_loaded_files = set(input_files.keys())
+        else:
+            not_loaded_files = set()
+
+        _logger.debug("Trying to load automatically: %s", input_files.keys())
         if load_data_script is None:
             # Try to load automatically
-            paths_no_gz = {p.with_suffix("") if p.suffix == ".gz" else p
-                           for p in full_input_files}
-            suffices = {p.suffix for p in paths_no_gz}
-            auto_suffices = {".ttl", ".nt"}
-            if suffices <= auto_suffices:
-                load_data_script_str = "# Auto generated to load TTL files\n" + "\n".join([
-                    # NOTE: the `../` is because the PRObs scripts set
-                    # $(dir.facts) to "data/", and the import statement is
-                    # relative to this, but $(dir.datasource) already includes
-                    # this prefix so that it works with dsource mappings.
-                    f'import "../$(dir.datasource)/{p}"' for p in input_files
+            auto_input_data_files = [
+                p
+                for p in input_files
+                if _can_load_data(p)
+            ]
+            _logger.debug("Automatically loading data: %s", auto_input_data_files)
+            not_loaded_files -= set(auto_input_data_files)
+            if auto_input_data_files:
+                load_data_script_str = "# Auto generated to load data files\n" + "\n".join([
+                    f'import "$(dir.datasource){p}"' for p in auto_input_data_files
                 ])
             else:
-                raise ValueError("No load_data_script given, and cannot automatically load {} files"
-                                 .format(suffices - auto_suffices))
+                load_data_script_str = ""
         else:
             load_data_script_str = _paths_or_strs_to_str(load_data_script)
 
-        # XXX This should be more general -- i.e. not in this function?
-        dir_setup = f'set dir.datasource "$(dir.root)/data/{datasource_name}/"'
-        load_data_script_str = dir_setup + "\n" + load_data_script_str
-
-        if rules is None:
-            rules = ""
+        if load_rules_script is None:
+            # Try to load automatically
+            auto_input_rules_files = [
+                p
+                for p in input_files
+                if _can_load_rules(p)
+            ]
+            _logger.debug("Automatically loading rules: %s", auto_input_rules_files)
+            not_loaded_files -= set(auto_input_rules_files)
+            if auto_input_rules_files:
+                load_rules_script_str = "# Auto generated to load rules files\n" + "\n".join([
+                    f'import "$(dir.datasource){p}"' for p in auto_input_rules_files
+                ])
+            else:
+                load_rules_script_str = ""
         else:
-            rules = _paths_or_strs_to_str(rules)
+            load_rules_script_str = _paths_or_strs_to_str(load_rules_script)
 
-        return Datasource(full_input_files, load_data_script_str, rules)
+        if not_loaded_files:
+            _logger.warning(
+                "No loading scripts given, and cannot automatically load some files: %s",
+                not_loaded_files
+            )
+            raise ValueError(
+                "No loading scripts given, and cannot automatically load some files: %s" %
+                ", ".join(str(p) for p in not_loaded_files)
+            )
+
+        # Set the dir.datasource variable
+        if load_data_script_str:
+            load_data_script_str = dir_setup + load_data_script_str
+        if load_rules_script_str:
+            load_rules_script_str = dir_setup + load_rules_script_str
+
+        return Datasource(full_input_files, load_data_script_str, load_rules_script_str)
 
 
-def _paths_or_strs_to_str(item_or_items: PathsOrStrs):
+def _can_load_data(path: Path):
+    """Return True if RDFox can directly import this file as data."""
+    if path.suffix == ".gz":
+        path = path.with_suffix("")
+    auto_suffices = {".ttl", ".nt"}
+    return (path.suffix in auto_suffices)
+
+
+def _can_load_rules(path: Path):
+    """Return True if RDFox can directly import this file as rules."""
+    if path.suffix == ".gz":
+        path = path.with_suffix("")
+    auto_suffices = {".dlog"}
+    return (path.suffix in auto_suffices)
+
+
+def _paths_or_strs_to_str(item_or_items: FileSpecs):
     items = (
         item_or_items if isinstance(item_or_items, list) else [item_or_items]
     )
     results = []
     for item in items:
-        if isinstance(item, Path):
-            results += [item.read_text()]
+        if hasattr(item, "read"):
+            # XXX Issue with binary vs text-mode files?
+            results += [item.read()]  # type: ignore
         else:
-            results += [item]
+            results += [Path(item).read_text()]  # type: ignore
     return "\n".join(results)
-
-
-def _compute_datasource_name(inputs):
-    """Calculate a unique identifier for a datasource based on INPUTS."""
-    parts = []
-    for inp in inputs:
-        if isinstance(inp, str):
-            parts.append(inp.encode())
-        if isinstance(inp, Path):
-            parts.append(bytes(inp))
-        elif hasattr(inp, 'name'):  # file objects
-            parts.append(inp.name.encode())
-        else:  # fallback
-            parts.append(str(id(inp)).encode())
-    return md5(b"".join(parts)).hexdigest()
 
 
 def load_datasource(path: Path):
     """Load a `Datasource` from path."""
 
     load_data_script = None
-    rules = None
+    load_rules_script = None
 
     if path.is_dir():
         load_data_path = path / "load_data.rdfox"
         if load_data_path.exists():
             load_data_script = load_data_path
 
-        map_path = path / "map.dlog"
-        if map_path.exists():
-            rules = map_path
+        load_rules_path = path / "load_rules.dlog"
+        if load_rules_path.exists():
+            load_rules_script = load_rules_path
 
-        data_files = list(path.glob("*.csv")) + list(path.glob("*.ttl"))
+        allowed_extensions = {".csv", ".ttl", ".dlog"}
+        data_files = [p for p in path.rglob("*.*") if p.suffix in allowed_extensions]
 
     elif path.exists():
-        if path.suffix.lower() == ".dlog":
-            data_files = []
-            rules = path
-        else:
-            data_files = [path]
+        data_files = [path]
 
     else:
         raise FileNotFoundError(path)
 
-    datasource = Datasource.from_files(data_files, load_data_script, rules)
+    # Generate a unique id based on the full path
+    datasource_id = md5(bytes(path)).hexdigest()
+
+    datasource = Datasource.from_files(
+        data_files, load_data_script, load_rules_script, data_subdir=datasource_id
+    )
     return datasource

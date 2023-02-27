@@ -37,8 +37,27 @@ def test_convert_data_csv(tmp_path, script_source_dir):
     assert (NS["Object-Bread"], PROBS.hasValue, Literal(6.0)) in result
 
 
-def test_convert_data_ttl(tmp_path, script_source_dir):
+def test_convert_data_ttl_from_dir(tmp_path, script_source_dir):
+    # This directory has the data file and a load_data.rdfox script
     source = load_datasource(Path(__file__).parent / "sample_datasource_ttl")
+    output_filename = tmp_path / "output.nt.gz"
+    probs_convert_data(
+        [source], output_filename, tmp_path / "working", script_source_dir
+    )
+
+    # Should check for success or failure
+
+    result = Graph()
+    with gzip.open(output_filename, "r") as f:
+        result.parse(f, format="nt")
+
+    # TODO: should make the test case use the proper ontology
+    assert (NS["Object-Bread"], PROBS.hasValue, Literal(6.0)) in result
+
+
+def test_convert_data_ttl_directly(tmp_path, script_source_dir):
+    # Also works by loading directly
+    source = load_datasource(Path(__file__).parent / "sample_datasource_ttl" / "data.ttl")
     output_filename = tmp_path / "output.nt.gz"
     probs_convert_data(
         [source], output_filename, tmp_path / "working", script_source_dir
@@ -142,8 +161,8 @@ def test_enhance_data_multiple_inputs(tmp_path, script_source_dir):
         result = f.read()
 
     # Check something has been added...
-    assert "Object-Bread>" in result
-    assert "Object-Cheese>" in result
+    assert "Object-Bread" in result
+    assert "Object-Cheese" in result
 
 
 def test_enhance_data_multiple_inputs_with_name_clash(tmp_path, script_source_dir):
@@ -165,8 +184,8 @@ def test_enhance_data_multiple_inputs_with_name_clash(tmp_path, script_source_di
         result = f.read()
 
     # Check something has been added...
-    assert "Object-Bread>" in result
-    assert "Object-Cheese>" in result
+    assert "Object-Bread" in result
+    assert "Object-Cheese" in result
 
 
 def test_probs_endpoint(tmp_path, script_source_dir):

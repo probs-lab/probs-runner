@@ -21,14 +21,13 @@ All of these functions accept some common options:
 
 """
 
-
+import os
 from contextlib import contextmanager
 import logging
-from typing import Dict, Iterator, Union
+from typing import List, Dict, Iterable, Iterator, Union, Optional
 from io import StringIO
 import shutil
 from pathlib import Path
-from tempfile import mkdtemp
 from hashlib import md5
 
 try:
@@ -41,16 +40,17 @@ except (ImportError, AttributeError):
 
 import pandas as pd
 
-from rdfox_runner import RDFoxRunner, RDFoxEndpoint
+from rdfox_runner import RDFoxRunner
 
 from .datasource import Datasource
-from .namespace import PROBS, NAMESPACES
+from .namespace import NAMESPACES
 from .endpoint import PRObsEndpoint
 
 logger = logging.getLogger(__name__)
 
 
-
+# Type aliases
+AllowableDataInputs = Union[Datasource, str, Path, Iterable[Union[Datasource, str, Path]]]
 
 DEFAULT_PORT = 12112
 
@@ -78,64 +78,121 @@ def _standard_input_files(script_source_dir):
     return input_files
 
 
-def _add_datasources_to_input_files(input_files, datasources):
-    input_files["scripts/data-conversion/load_data.rdfox"] = StringIO(
-        "\n".join(source.load_data_script for source in datasources)
-    )
-    input_files["scripts/data-conversion/map.dlog"] = StringIO(
-        "\n".join(source.rules for source in datasources)
-    )
-    for datasource in datasources:
-        for tgt, src in datasource.input_files.items():
-            if tgt in input_files:
-                raise ValueError(f"Duplicate entry in input_files for '{tgt}'")
-            input_files[tgt] = src
+def _add_datasource_to_input_files(input_files, load_data_script_file, load_rules_script_file, datasource):
+    load_data_script_file.write("\n\n### Datasource ###\n\n")
+    load_data_script_file.write(datasource.load_data_script + "\n")
+
+    load_rules_script_file.write("\n\n### Datasource ###\n\n")
+    load_rules_script_file.write(datasource.load_rules_script + "\n")
+
+    for tgt, src in datasource.input_files.items():
+        if tgt in input_files:
+            raise ValueError(
+                f"Duplicate entry in input_files for '{tgt}'"
+            )
+        input_files[tgt] = src
 
 
-def _add_files_to_input_files(input_files, module, paths):
-    paths_to_load = []
-    for path in (Path(x) for x in paths):
-        # Keep path.name in the filename, so it's easier to understand, but
-        # make sure it is unique using the full path hash.
-        unique_filename = md5(bytes(path)).hexdigest() + "_" + path.name
-        input_files["data/" + unique_filename] = path
-        paths_to_load.append(unique_filename)
+def _prepare_datasources_arg(datasources: AllowableDataInputs) -> List[Datasource]:
+    """Convert the allowable inputs into a list of Datasources."""
+
+    # Allow single values or a list
+    ds_list = (
+        [datasources]
+        if isinstance(datasources, (Datasource, str, Path))
+        else datasources
+    )
+
+    def _convert(ds) -> Datasource:
+        if isinstance(ds, Datasource):
+            return ds
+        # Assume this is a data file to load. Keep the the filename, so it's
+        # easier to understand, but place it in a uniquely-named subdirectory to
+        # avoid clashing with other data files.
+        subdir = md5(bytes(ds)).hexdigest()
+        return Datasource.from_files([ds], data_subdir=subdir)
+
+    return [_convert(ds) for ds in ds_list]
+
+
+def probs_run_module(
+    module: str,
+    datasources: AllowableDataInputs,
+    setup_script: Optional[Union[List[str], str]]=None,
+    working_dir=None,
+    script_source_dir=None,
+    **kwargs,
+) -> RDFoxRunner:
+    """Set up RDFox to load `datasources` and run `module`.
+
+    :param module: PRObs module to run
+
+    :param datasources: List of :py:class:`Datasource` objects describing
+    inputs, or `str` or `Path` paths to load from a directory or file.
+
+    :param setup_script: Additional RDFox script to run before master script for
+    the selected module, e.g. to set the listening port for the endpoint.
+
+    :param working_dir: Path to setup rdfox in, defaults to a temporary
+    directory
+
+    :param script_source_dir: Path to copy scripts from
+
+    """
+
+    if setup_script is None:
+        setup_script = []
+    elif not isinstance(setup_script, list):
+        setup_script = [setup_script]
+
+    datasources = _prepare_datasources_arg(datasources)
+
+    logger.debug("Running PRObs module %s (%s)", module, kwargs)
+    input_files = _standard_input_files(script_source_dir)
 
     load_data_path = f"scripts/{module}/load_data.rdfox"
-    input_files[load_data_path] = StringIO(
-        "\n".join(f"import {name}" for name in paths_to_load)
+    load_rules_path = f"scripts/{module}/load_rules.rdfox"
+    load_data_file = input_files[load_data_path] = StringIO()
+    load_rules_file = input_files[load_rules_path] = StringIO()
+
+    for datasource in datasources:
+        logger.debug("Adding datasource: %s", datasource)
+        _add_datasource_to_input_files(
+            input_files, load_data_file, load_rules_file, datasource
+        )
+
+    load_data_file.seek(0)
+    load_rules_file.seek(0)
+
+    script = setup_script + [f"exec scripts/{module}/master"]
+
+    runner = RDFoxRunner(
+        input_files,
+        script,
+        working_dir=working_dir,
+        **kwargs
     )
+    return runner
 
 
 def probs_convert_data(
-    datasources,
-    output_path,
-    working_dir=None,
-    script_source_dir=None,
+    datasources: AllowableDataInputs,
+    output_path: Union[os.PathLike, str],
+    working_dir: Optional[Union[os.PathLike, str]]=None,
+    script_source_dir: Optional[Union[os.PathLike, str]]=None,
 ) -> None:
     """Load `datasources`, convert to RDF and copy result to `output_path`.
 
-    :param datasources: List of :py:class:`Datasource` objects describing inputs
+    :param datasources: List of :py:class:`Datasource` objects describing
+    inputs, or paths to individual input files.
     :param output_path: Path to save the data
     :param working_dir: Path to setup rdfox in, defaults to a temporary directory
     :param script_source_dir: Path to copy scripts from
     """
 
-    input_files = _standard_input_files(script_source_dir)
-    _add_datasources_to_input_files(input_files, datasources)
-    script = ["exec scripts/data-conversion/master"]
-
-    import time
-    runner = RDFoxRunner(input_files, script, working_dir=working_dir)
+    runner = probs_run_module("data-conversion", datasources, working_dir=working_dir, script_source_dir=script_source_dir)
     with runner:
         logger.debug("probs_convert_data: RDFox runner done")
-        logger.debug("probs_convert_data: data size %s", runner.files("data/probs_original_data.nt.gz").stat().st_size)
-        time.sleep(0.001)
-        logger.debug("probs_convert_data: data size %s", runner.files("data/probs_original_data.nt.gz").stat().st_size)
-        time.sleep(0.01)
-        logger.debug("probs_convert_data: data size %s", runner.files("data/probs_original_data.nt.gz").stat().st_size)
-        time.sleep(0.1)
-        logger.debug("probs_convert_data: data size %s", runner.files("data/probs_original_data.nt.gz").stat().st_size)
         shutil.copy(runner.files("data/probs_original_data.nt.gz"), output_path)
         logger.debug("probs_convert_data: Copy data done")
 
@@ -143,66 +200,43 @@ def probs_convert_data(
 
 
 def probs_validate_data(
-    original_data_path,
-    working_dir=None,
-    script_source_dir=None,
+    datasources: AllowableDataInputs,
+    working_dir: Optional[Union[os.PathLike, str]]=None,
+    script_source_dir: Optional[Union[os.PathLike, str]]=None,
 ) -> None:
     """Load `original_data_path`, run data validation script.
 
-    :param original_data_path: path to probs_original_data.nt.gz, or multiple paths to load
+    :param datasources: List of :py:class:`Datasource` objects describing
+    inputs, or paths to individual input files.
     :param working_dir: Path to setup runner in, defaults to a temporary directory
     :param script_source_dir: Path to copy scripts from
     """
 
-    input_files = _standard_input_files(script_source_dir)
-
-    if not isinstance(original_data_path, (list, tuple)):
-        original_data_path = [original_data_path]
-    _add_files_to_input_files(input_files, "data-validation", original_data_path)
-
-    script = ["exec scripts/data-validation/master"]
-
-    with RDFoxRunner(input_files, script, working_dir=working_dir):
+    runner = probs_run_module("data-validation", datasources, working_dir=working_dir, script_source_dir=script_source_dir)
+    with runner:
         logger.debug("probs_validate_data: RDFox runner done")
-        # shutil.copy(rdfox.files("data/probs_enhanced_data.nt.gz"), output_path)
-        # logger.debug("probs_validate_data: Copy data done")
 
     # Should somehow signal success or failure
 
 
 def probs_enhance_data(
-    original_data_path,
-    output_path,
-    working_dir=None,
-    script_source_dir=None,
+    datasources: AllowableDataInputs,
+    output_path: Union[os.PathLike, str],
+    working_dir: Optional[Union[os.PathLike, str]]=None,
+    script_source_dir: Optional[Union[os.PathLike, str]]=None,
 ) -> None:
-    """Load `original_data_path`, apply rules to enhance, and copy result to `output_path`.
+    """Load input data, apply rules to enhance, and copy result to `output_path`.
 
-    :param original_data_path: path to probs_original_data.nt.gz, or multiple paths to load
+    :param datasources: List of :py:class:`Datasource` objects describing
+    inputs, or paths to individual input files.
     :param output_path: path to save the data
     :param working_dir: Path to setup rdfox in, defaults to a temporary directory
     :param script_source_dir: Path to copy scripts from
     """
 
-    input_files = _standard_input_files(script_source_dir)
-
-    if not isinstance(original_data_path, (list, tuple)):
-        original_data_path = [original_data_path]
-    _add_files_to_input_files(input_files, "data-enhancement", original_data_path)
-
-    script = ["exec scripts/data-enhancement/master"]
-
-    import time
-    runner = RDFoxRunner(input_files, script, working_dir=working_dir)
+    runner = probs_run_module("data-enhancement", datasources, working_dir=working_dir, script_source_dir=script_source_dir)
     with runner:
         logger.debug("probs_enhance_data: RDFox runner done")
-        logger.debug("probs_enhance_data: data size %s", runner.files("data/probs_enhanced_data.nt.gz").stat().st_size)
-        time.sleep(0.001)
-        logger.debug("probs_enhance_data: data size %s", runner.files("data/probs_enhanced_data.nt.gz").stat().st_size)
-        time.sleep(0.01)
-        logger.debug("probs_enhance_data: data size %s", runner.files("data/probs_enhanced_data.nt.gz").stat().st_size)
-        time.sleep(0.1)
-        logger.debug("probs_enhance_data: data size %s", runner.files("data/probs_enhanced_data.nt.gz").stat().st_size)
         shutil.copy(runner.files("data/probs_enhanced_data.nt.gz"), output_path)
         logger.debug("probs_enhance_data: Copy data done")
 
@@ -211,26 +245,28 @@ def probs_enhance_data(
 
 @contextmanager
 def probs_endpoint(
-    enhanced_data_path,
-    working_dir=None,
-    script_source_dir=None,
-    port=DEFAULT_PORT,
-    namespaces=None,
-    use_default_namespaces=True,
+    datasources: AllowableDataInputs,
+    working_dir: Optional[Union[os.PathLike, str]]=None,
+    script_source_dir: Optional[Union[os.PathLike, str]]=None,
+    port: Optional[int]=DEFAULT_PORT,
+    namespaces: Optional[dict]=None,
+    use_default_namespaces: bool=True,
 ) -> Iterator:
-    """Load `enhanced_data_path`, and start endpoint.
+    """Load data sources, and start endpoint.
 
     This is a context manager. Use it as::
 
         with probs_endpoint(...) as rdfox:
             results = rdfox.query(...)
 
-    :param enhanced_data_path: path to probs_original_data.nt.gz
+    :param datasources: List of :py:class:`Datasource` objects describing
+    inputs, or paths to individual input files.
     :param working_dir: Path to setup rdfox in, defaults to a temporary directory
     :param script_source_dir: Path to copy scripts from
     :param port: Port number to listen on
     :param namespaces: dict of namespace mappings
     :param use_default_namespaces: whether to use the default namespaces.
+
     """
 
     if port is None:
@@ -240,31 +276,20 @@ def probs_endpoint(
     if namespaces is not None:
         ns.update(namespaces)
 
-    input_files = _standard_input_files(script_source_dir)
-
-    if not isinstance(enhanced_data_path, (list, tuple)):
-        enhanced_data_path = [enhanced_data_path]
-    _add_files_to_input_files(input_files, "reasoning", enhanced_data_path)
-
-    script = [
-        f'set endpoint.port "{int(port)}"',
-        "exec scripts/reasoning/master",
+    setup_script = [
+         f'set endpoint.port "{int(port)}"',
     ]
 
     endpoint = PRObsEndpoint(ns)
-    with RDFoxRunner(
-            input_files,
-            script,
-            working_dir=working_dir,
-            wait="endpoint",
-            endpoint=endpoint):
+    runner = probs_run_module("reasoning", datasources, setup_script, working_dir=working_dir, script_source_dir=script_source_dir, wait="endpoint", endpoint=endpoint)
+    with runner:
         yield endpoint
 
 
 def connect_to_endpoint(
-        url,
-        namespaces=None,
-        use_default_namespaces=True,
+    url,
+    namespaces=None,
+    use_default_namespaces=True,
 ) -> PRObsEndpoint:
     """Connect to an existing endpoint."""
 
