@@ -109,7 +109,8 @@ def _prepare_datasources_arg(datasources: AllowableDataInputs) -> List[Datasourc
         # Assume this is a data file to load. Keep the the filename, so it's
         # easier to understand, but place it in a uniquely-named subdirectory to
         # avoid clashing with other data files.
-        subdir = md5(bytes(ds)).hexdigest()
+        bb = ds.encode('utf8') if isinstance(ds, str) else bytes(ds)
+        subdir = md5(bb).hexdigest()
         return Datasource.from_files([ds], data_subdir=subdir)
 
     return [_convert(ds) for ds in ds_list]

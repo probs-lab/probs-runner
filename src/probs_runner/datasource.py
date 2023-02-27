@@ -216,6 +216,9 @@ def _paths_or_strs_to_str(item_or_items: FileSpecs):
 def load_datasource(path: Path):
     """Load a `Datasource` from path."""
 
+    if not isinstance(path, Path):
+        path = Path(path)
+
     load_data_script = None
     load_rules_script = None
 

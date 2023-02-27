@@ -188,6 +188,19 @@ def test_enhance_data_multiple_inputs_with_name_clash(tmp_path, script_source_di
     assert "Object-Cheese" in result
 
 
+def test_enhance_data_string_path(tmp_path, script_source_dir):
+    original_filename = tmp_path / "original.nt.gz"
+    enhanced_filename = tmp_path / "enhanced.nt.gz"
+    _setup_test_nt_gz_data(original_filename, "Object-Bread")
+
+    probs_enhance_data(
+        str(original_filename),
+        enhanced_filename,
+        tmp_path / "working_enhanced",
+        script_source_dir,
+    )
+
+
 def test_probs_endpoint(tmp_path, script_source_dir):
     output_filename = tmp_path / "output.nt.gz"
     with gzip.open(output_filename, "wt") as f:
