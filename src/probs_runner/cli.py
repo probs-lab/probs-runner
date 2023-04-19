@@ -230,19 +230,9 @@ def query(obj, inputs, port, query_text, query_file, output_format):
                         port=port,
                         script_source_dir=script_source_dir) as rdfox:
 
-        # XXX maybe there is a better way of getting RDFox to return data in a
-        # format that is directly interpreted by rdflib as a graph. For now, do
-        # it manually based on the returned variable names.
-        result = rdfox.query(query_text)
-
-    if [str(v) for v in result.vars] == ["S", "P", "O"]:
-        # construct graph
-        g = rdflib.Graph()
-        g.addN((s, p, o, g) for s, p, o in result)
-        sys.stdout.write(g.serialize(format=output_format).decode())
-    else:
-        for row in result:
-            print(row)
+        response = rdfox.query_raw(query_text, answer_format=output_format)
+        for chunk in response.iter_content(chunk_size=8192):
+            sys.stdout.buffer.write(chunk)
 
 
 INSPECT_QUERY = """
