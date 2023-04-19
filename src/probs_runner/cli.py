@@ -270,7 +270,7 @@ INSPECT_OBSERVATIONS_SUMMARY = """
 SELECT ?p (COUNT(DISTINCT ?o) AS ?count) (GROUP_CONCAT(DISTINCT STR(?o)) AS ?values)
 WHERE {
   ?Observation a :Observation; ?p ?o .
-  FILTER(?p IN (:processDefinedBy, :objectDefinedBy, :hasRegion, :hasTimePeriod, :hasRole, :metric))
+  FILTER(?p IN (:processDefinedBy, :objectDefinedBy, :hasRegion, :hasTimePeriod, :hasRole, :hasMetric))
 }
 GROUP BY ?p
 ORDER BY ?p
@@ -367,8 +367,8 @@ def inspect(obj, inputs, subject, summary, format):
                                tuple(sorted(d[1]["probs:hasRole"])),
                                tuple(sorted(d[1].get("probs:objectDefinedBy", []))),
                                tuple(sorted(d[1].get("probs:processDefinedBy", []))),
-                               tuple(sorted(d[1]["probs:metric"])),
-                               tuple(sorted(d[1]["probs:bound"])),
+                               tuple(sorted(d[1]["probs:hasMetric"])),
+                               tuple(sorted(d[1]["probs:hasBound"])),
                                tuple(sorted(d[1].get("probs:measurement", []))))
             )
             for s, d in data:
