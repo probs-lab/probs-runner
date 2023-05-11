@@ -22,6 +22,8 @@ class Observation:
     role: URIRef
     object_: Optional[URIRef] = None
     process: Optional[URIRef] = None
+    object_code: Optional[str] = None
+    process_code: Optional[str] = None
     measurement: Optional[float] = None
     bound: URIRef = PROBS.ExactBound
 
@@ -41,10 +43,10 @@ class PRObsEndpoint(RDFoxEndpoint):
                  :hasRole ?role ;
                  %s
                  :bound ?bound .
+                 %s    
             OPTIONAL { ?obs :measurement ?measurement . }
         }
     """
-
 
     def get_observations(self,
                          time: URIRef,
@@ -52,7 +54,10 @@ class PRObsEndpoint(RDFoxEndpoint):
                          metric: URIRef,
                          role: URIRef,
                          object_: Optional[URIRef] = None,
-                         process: Optional[URIRef] = None) -> List[Observation]:
+                         process: Optional[URIRef] = None,
+                         object_code: Optional[str] = None,
+                         process_code: Optional[str] = None) -> List[Observation]:
+
         """Query for observations matching the given dimensions.
 
         :param time: value for `:hasTimePeriod`
@@ -71,14 +76,30 @@ class PRObsEndpoint(RDFoxEndpoint):
             "metric": metric,
             "role": role
         }
-        other = ""
+        other1 = ""
+        other2 = ""
         if object_ is not None:
-            other += ":objectDefinedBy ?object ; "
+            other1 += ":objectDefinedBy ?object ;"
             bindings["object"] = object_
+        elif object_code is not None:
+            other1 += """
+                 :objectDefinedBy ?classification;""" 
+            other2 += """
+            ?classification :hasClassificationCode ?code.
+            ?code :codeName ?cname
+            FILTER (STR(?cname) = %s)""" % ("\"" + object_code + "\"")
         if process is not None:
-            other += ":processDefinedBy ?process ; "
+            other1 += """
+                 :processDefinedBy ?process ;"""
             bindings["process"] = process
-        query = self.query_obs_template % other
+        elif process_code is not None:
+            other1 += """
+                 :processDefinedBy ?process ;"""
+            other2 += """
+            ?process :codeName ?code.
+            FILTER (STR(?code) = %s)""" % ("\"" + process_code + "\"")
+        query = self.query_obs_template % (other1, other2)
+        print(query)
         def _convert_measurement(value):
             return float(value) if value is not None else float("nan")
         return [
@@ -90,6 +111,8 @@ class PRObsEndpoint(RDFoxEndpoint):
                 role=role,
                 object_=object_,
                 process=process,
+                object_code = object_code,
+                process_code = process_code,
                 measurement=_convert_measurement(row["measurement"]),
                 bound=row["bound"],
             )
