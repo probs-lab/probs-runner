@@ -16,7 +16,8 @@ from probs_runner import (
 )
 
 
-NS = Namespace("https://ukfires.org/probs/ontology/data/simple/")
+#NS = Namespace("https://ukfires.org/probs/ontology/data/simple/")
+NS = Namespace("http://w3id.org/probs-lab/ontology/data/simple/")
 
 
 def test_convert_data_csv(tmp_path, script_source_dir):
@@ -102,7 +103,7 @@ def test_enhance_data(tmp_path, script_source_dir):
     with gzip.open(original_filename, "wt") as f:
         f.write(
             """
-<https://ukfires.org/probs/ontology/data/simple/Object-Bread> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://ukfires.org/probs/ontology/Object> .
+<http://w3id.org/probs-lab/ontology/data/simple/Object-Bread> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/probs-lab/ontology/Object> .
         """
         )
 
@@ -125,7 +126,7 @@ def _setup_test_nt_gz_data(p, object_name):
     with gzip.open(p, "wt") as f:
         f.write(
             f"""
-<https://ukfires.org/probs/ontology/data/simple/{object_name}> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://ukfires.org/probs/ontology/Object> .
+<http://w3id.org/probs-lab/ontology/data/simple/{object_name}> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/probs-lab/ontology/Object> .
 """
         )
 
@@ -135,8 +136,8 @@ def _setup_test_ttl_data(p, object_name):
     with open(p, "wt") as f:
         f.write(
             f"""
-@prefix simple: <https://ukfires.org/probs/ontology/data/simple/> .
-@prefix probs: <https://ukfires.org/probs/ontology/> .
+@prefix simple: <http://w3id.org/probs-lab/ontology/data/simple/> .
+@prefix probs: <http://w3id.org/probs-lab/ontology/> .
 simple:{object_name} a probs:Object .
 """
         )
@@ -206,8 +207,8 @@ def test_probs_endpoint(tmp_path, script_source_dir):
     with gzip.open(output_filename, "wt") as f:
         f.writelines(
             [
-                '<https://ukfires.org/probs/ontology/data/simple/Object-Bread> <https://ukfires.org/probs/ontology/hasValue> "6"^^<http://www.w3.org/2001/XMLSchema#double> .',
-                '<https://ukfires.org/probs/ontology/data/simple/Object-Cake> <https://ukfires.org/probs/ontology/hasValue> "3"^^<http://www.w3.org/2001/XMLSchema#double> .',
+                '<http://w3id.org/probs-lab/ontology/data/simple/Object-Bread> <http://w3id.org/probs-lab/ontology/hasValue> "6"^^<http://www.w3.org/2001/XMLSchema#double> .',
+                '<http://w3id.org/probs-lab/ontology/data/simple/Object-Cake> <http://w3id.org/probs-lab/ontology/hasValue> "3"^^<http://www.w3.org/2001/XMLSchema#double> .',
             ]
         )
 

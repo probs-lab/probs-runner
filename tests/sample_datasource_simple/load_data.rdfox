@@ -1,5 +1,5 @@
-prefix ufrd: <https://ukfires.org/probs/ontology/raw_data/>
-prefix simple: <https://ukfires.org/probs/ontology/data/simple/>
+prefix ufrd: <http://w3id.org/probs-lab/ontology/raw_data/>
+prefix simple: <http://w3id.org/probs-lab/ontology/data/simple/>
 
 dsource register "Simple"                                           \
     type    delimitedFile                                           \

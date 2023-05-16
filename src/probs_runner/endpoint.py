@@ -22,8 +22,8 @@ class Observation:
     role: URIRef
     object_: Optional[URIRef] = None
     process: Optional[URIRef] = None
-    object_code: Optional[str] = None
-    process_code: Optional[str] = None
+#    object_code: Optional[str] = None
+#    process_code: Optional[str] = None
     measurement: Optional[float] = None
     bound: URIRef = PROBS.ExactBound
 
@@ -34,7 +34,7 @@ class PRObsEndpoint(RDFoxEndpoint):
     """
 
     query_obs_template = """
-        SELECT ?obs ?measurement ?bound
+        SELECT ?obs ?measurement ?bound ?process ?object
         WHERE {
             ?obs a :Observation ;
                  :hasTimePeriod ?time ;
@@ -83,11 +83,14 @@ class PRObsEndpoint(RDFoxEndpoint):
             bindings["object"] = object_
         elif object_code is not None:
             other1 += """
-                 :objectDefinedBy ?classification;""" 
+                 :objectDefinedBy ?object;""" 
             other2 += """
-            ?classification :hasClassificationCode ?code.
-            ?code :codeName ?cname
+            ?object :hasClassificationCode ?code .
+            ?code :codeName ?cname .
             FILTER (STR(?cname) = %s)""" % ("\"" + object_code + "\"")
+        else:
+            other2 += """
+            OPTIONAL { ?obs :objectDefinedBy ?object . }"""
         if process is not None:
             other1 += """
                  :processDefinedBy ?process ;"""
@@ -96,25 +99,52 @@ class PRObsEndpoint(RDFoxEndpoint):
             other1 += """
                  :processDefinedBy ?process ;"""
             other2 += """
-            ?process :codeName ?code.
+            ?process :codeName ?code .
             FILTER (STR(?code) = %s)""" % ("\"" + process_code + "\"")
+        else:
+            other2 += """
+            OPTIONAL { ?obs :processDefinedBy ?process . }"""
         query = self.query_obs_template % (other1, other2)
         print(query)
         def _convert_measurement(value):
             return float(value) if value is not None else float("nan")
-        return [
-            Observation(
-                uri=row["obs"],
-                time=time,
-                region=region,
-                metric=metric,
-                role=role,
-                object_=object_,
-                process=process,
-                object_code = object_code,
-                process_code = process_code,
-                measurement=_convert_measurement(row["measurement"]),
-                bound=row["bound"],
+        results = []
+        for row in self.query_records(query, initBindings=bindings):
+            if object == None and object_code == None:
+                return_object = None
+            else:
+                return_object = row["object"]
+            if process == None and process_code == None:
+                return_process = None
+            else:
+                return_process = row["process"]
+            results.append(
+                Observation(
+                    uri=row["obs"],
+                    time=time,
+                    region=region,
+                    metric=metric,
+                    role=role,
+                    object_=return_object,
+                    process=return_process,
+                    measurement=_convert_measurement(row["measurement"]),
+                    bound=row["bound"],
+                )
             )
-            for row in self.query_records(query, initBindings=bindings)
-        ]
+        return results 
+#        return [
+#            Observation(
+#                uri=row["obs"],
+#                time=time,
+#                region=region,
+#                metric=metric,
+#                role=role,
+#                object_=object_,
+#                process=process,
+#                object_code = object_code,
+#                process_code = process_code,
+#                measurement=_convert_measurement(row["measurement"]),
+#                bound=row["bound"],
+#            )
+#            for row in self.query_records(query, initBindings=bindings)
+#        ]
