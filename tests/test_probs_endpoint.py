@@ -14,15 +14,15 @@ from probs_runner import (
 )
 
 
-NS = Namespace("https://ukfires.org/probs/ontology/data/simple/")
+NS = Namespace("http://w3id.org/probs-lab/ontology/data/simple/")
 
 def test_probs_endpoint(tmp_path, script_source_dir):
     output_filename = tmp_path / "output.nt.gz"
     with gzip.open(output_filename, "wt") as f:
         f.writelines(
             [
-                '<https://ukfires.org/probs/ontology/data/simple/Object-Bread> <http://w3id.org/probs-lab/ontology/hasValue> "6"^^<http://www.w3.org/2001/XMLSchema#double> .',
-                '<https://ukfires.org/probs/ontology/data/simple/Object-Cake> <http://w3id.org/probs-lab/ontology/hasValue> "3"^^<http://www.w3.org/2001/XMLSchema#double> .',
+                '<http://w3id.org/probs-lab/ontology/data/simple/Object-Bread> <http://w3id.org/probs-lab/ontology/hasValue> "6"^^<http://www.w3.org/2001/XMLSchema#double> .',
+                '<http://w3id.org/probs-lab/ontology/data/simple/Object-Cake> <http://w3id.org/probs-lab/ontology/hasValue> "3"^^<http://www.w3.org/2001/XMLSchema#double> .',
             ]
         )
 
@@ -152,7 +152,7 @@ def test_probs_endpoint_get_observations_by_process_code(tmp_path, script_source
         ]
 
         result2 = rdfox.get_observations(
-            time=PROBS.TimePeriod_YearOf2030,
+            time=PROBS.TimePeriod_YearOf2018,
             region=PROBS.RegionGBR,
             metric=QUANTITYKIND.Mass,
             role=PROBS.ProcessOutput,
@@ -217,7 +217,7 @@ def test_probs_endpoint_get_observations_by_object_code(tmp_path, script_source_
             region=PROBS.RegionGBR,
             metric=QUANTITYKIND.Mass,
             role=PROBS.SoldProduction,
-            object_=URIRef("http://example.org/unfccc/N2O"),
+            object_code="2345",
         )
 
         assert result2 == []
