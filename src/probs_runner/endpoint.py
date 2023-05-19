@@ -22,8 +22,6 @@ class Observation:
     role: URIRef
     object_: Optional[URIRef] = None
     process: Optional[URIRef] = None
-#    object_code: Optional[str] = None
-#    process_code: Optional[str] = None
     measurement: Optional[float] = None
     bound: URIRef = PROBS.ExactBound
 
@@ -105,7 +103,6 @@ class PRObsEndpoint(RDFoxEndpoint):
             other2 += """
             OPTIONAL { ?obs :processDefinedBy ?process . }"""
         query = self.query_obs_template % (other1, other2)
-        print(query)
         def _convert_measurement(value):
             return float(value) if value is not None else float("nan")
         results = []
@@ -132,19 +129,3 @@ class PRObsEndpoint(RDFoxEndpoint):
                 )
             )
         return results 
-#        return [
-#            Observation(
-#                uri=row["obs"],
-#                time=time,
-#                region=region,
-#                metric=metric,
-#                role=role,
-#                object_=object_,
-#                process=process,
-#                object_code = object_code,
-#                process_code = process_code,
-#                measurement=_convert_measurement(row["measurement"]),
-#                bound=row["bound"],
-#            )
-#            for row in self.query_records(query, initBindings=bindings)
-#        ]
