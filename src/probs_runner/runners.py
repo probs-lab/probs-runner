@@ -55,25 +55,52 @@ AllowableDataInputs = Union[Datasource, str, Path, Iterable[Union[Datasource, st
 DEFAULT_PORT = 12112
 
 
-def _standard_input_files(script_source_dir):
-    if script_source_dir is None:
-        # Use the version of the ontology scripts bundled with the Python
-        # package
+def _standard_input_files(source_dir, module_name):
+    if isinstance(source_dir, str):
+        source_dir = Path(source_dir)
+
+    if source_dir is None:
+        # Use the version of the module scripts bundled with the Python package
         try:
-            script_source_dir = importlib_resources_files("probs_ontology")
+            script_source_dir = importlib_resources_files("probs_system.scripts")
         except ModuleNotFoundError:
             raise RuntimeError(
-                "The probs_ontology package is not installed, and no script_source_dir has been specified."
+                f"The probs_system.scripts package is not installed, and no source_dir has been specified."
             )
 
-    if isinstance(script_source_dir, str):
-        script_source_dir = Path(script_source_dir)
+        # Use the version of the data bundled with the Python package
+        try:
+            data_source_dir = importlib_resources_files("probs_system.data")
+        except ModuleNotFoundError:
+            raise RuntimeError(
+                f"The probs_system.data package is not installed, and no source_dir has been specified."
+            )
 
-    # Standard files
+    else:
+        # Load from file system
+        script_source_dir = source_dir / "scripts"
+        data_source_dir = source_dir / "data"
+
+    if not (script_source_dir / module_name).exists():
+        raise RuntimeError(
+            f"The scripts for module '{module_name}' are not installed. Try installing the "
+            f"Python package 'probs-module-{module_name}'?"
+        )
+
+    # Standard files: scripts
     input_files: Dict[str, Union[Traversable, StringIO]] = {
-        "data/": script_source_dir / "data/",
-        "scripts/": script_source_dir / "scripts/",
+        f"scripts/{module_name}": script_source_dir / module_name,
     }
+
+    # Need to add data files individually by discovering which are available
+    # (the MultiplexedPath from importlib.resources cannot be directly copied)
+    if not isinstance(data_source_dir, Path):
+        for path in data_source_dir._paths:
+            for p in path.iterdir():
+                rel = Path("data") / p.relative_to(path)
+                input_files[rel] = p
+    else:
+        input_files["data"] = data_source_dir
 
     return input_files
 
@@ -149,7 +176,7 @@ def probs_run_module(
     datasources = _prepare_datasources_arg(datasources)
 
     logger.debug("Running PRObs module %s (%s)", module, kwargs)
-    input_files = _standard_input_files(script_source_dir)
+    input_files = _standard_input_files(script_source_dir, module)
 
     load_data_path = f"scripts/{module}/load_data.rdfox"
     load_rules_path = f"scripts/{module}/load_rules.rdfox"
