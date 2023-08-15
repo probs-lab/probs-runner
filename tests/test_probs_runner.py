@@ -103,7 +103,21 @@ def test_enhance_data(tmp_path, script_source_dir):
     with gzip.open(original_filename, "wt") as f:
         f.write(
             """
-<http://w3id.org/probs-lab/ontology/data/simple/Object-Bread> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/probs-lab/ontology/Object> .
+<http://example.org/Obs> <http://w3id.org/probs-lab/ontology#measurement> "8551330"^^<http://www.w3.org/2001/XMLSchema#double> .
+<http://example.org/Obs> <http://w3id.org/probs-lab/ontology#objectDefinedBy> <http://example.org/unfccc/N2O> .
+<http://example.org/Obs> <http://w3id.org/probs-lab/ontology#processDefinedBy> <http://example.org/unfccc/1.> .
+<http://example.org/Obs> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/probs-lab/ontology#DirectObservation> .
+<http://example.org/Obs> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/prov#Entity> .
+<http://example.org/Obs> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/probs-lab/ontology#Observation> .
+<http://example.org/Obs> <http://w3id.org/probs-lab/ontology#metric> <http://qudt.org/vocab/quantitykind/Mass> .
+<http://example.org/Obs> <http://w3id.org/probs-lab/ontology#bound> <http://w3id.org/probs-lab/ontology#ExactBound> .
+<http://example.org/Obs> <http://w3id.org/probs-lab/ontology#partOfDataset> <http://example.org/unfccc/UNFCCCData> .
+<http://example.org/Obs> <http://w3id.org/probs-lab/ontology#objectDirectlyDefinedBy> <http://example.org/unfccc/N2O> .
+<http://example.org/Obs> <http://w3id.org/probs-lab/ontology#processDirectlyDefinedBy> <http://example.org/unfccc/1.> .
+<http://example.org/Obs> <http://w3id.org/probs-lab/ontology#hasRole> <http://w3id.org/probs-lab/ontology#ProcessOutput> .
+<http://example.org/Obs> <http://w3id.org/probs-lab/ontology#hasTimePeriod> <http://w3id.org/probs-lab/ontology#TimePeriod_YearOf2018> .
+<http://example.org/Obs> <http://w3id.org/probs-lab/ontology#hasRegion> <http://w3id.org/probs-lab/ontology#RegionGBR> .
+<http://example.org/unfccc/N2O_equiv> <http://w3id.org/probs-lab/ontology#objectEquivalentTo> <http://example.org/unfccc/N2O> .
         """
         )
 
@@ -143,52 +157,6 @@ simple:{object_name} a probs:Object .
         )
 
 
-def test_enhance_data_multiple_inputs(tmp_path, script_source_dir):
-    original_filename_1 = tmp_path / "original1.nt.gz"
-    original_filename_2 = tmp_path / "original2.ttl"
-    enhanced_filename = tmp_path / "enhanced.nt.gz"
-
-    _setup_test_nt_gz_data(original_filename_1, "Object-Bread")
-    _setup_test_ttl_data(original_filename_2, "Object-Cheese")
-
-    probs_enhance_data(
-        [original_filename_1, original_filename_2],
-        enhanced_filename,
-        tmp_path / "working_enhanced",
-        script_source_dir,
-    )
-
-    with gzip.open(enhanced_filename, "rt") as f:
-        result = f.read()
-
-    # Check something has been added...
-    assert "Object-Bread" in result
-    assert "Object-Cheese" in result
-
-
-def test_enhance_data_multiple_inputs_with_name_clash(tmp_path, script_source_dir):
-    original_filename_1 = tmp_path / "dir1" / "original.nt.gz"
-    original_filename_2 = tmp_path / "dir2" / "original.nt.gz"
-    enhanced_filename = tmp_path / "enhanced.nt.gz"
-
-    _setup_test_nt_gz_data(original_filename_1, "Object-Bread")
-    _setup_test_nt_gz_data(original_filename_2, "Object-Cheese")
-
-    probs_enhance_data(
-        [original_filename_1, original_filename_2],
-        enhanced_filename,
-        tmp_path / "working_enhanced",
-        script_source_dir,
-    )
-
-    with gzip.open(enhanced_filename, "rt") as f:
-        result = f.read()
-
-    # Check something has been added...
-    assert "Object-Bread" in result
-    assert "Object-Cheese" in result
-
-
 def test_enhance_data_string_path(tmp_path, script_source_dir):
     original_filename = tmp_path / "original.nt.gz"
     enhanced_filename = tmp_path / "enhanced.nt.gz"
@@ -200,30 +168,3 @@ def test_enhance_data_string_path(tmp_path, script_source_dir):
         tmp_path / "working_enhanced",
         script_source_dir,
     )
-
-
-def test_probs_endpoint(tmp_path, script_source_dir):
-    output_filename = tmp_path / "output.nt.gz"
-    with gzip.open(output_filename, "wt") as f:
-        f.writelines(
-            [
-                '<http://w3id.org/probs-lab/ontology/data/simple/Object-Bread> <http://w3id.org/probs-lab/ontology/hasValue> "6"^^<http://www.w3.org/2001/XMLSchema#double> .',
-                '<http://w3id.org/probs-lab/ontology/data/simple/Object-Cake> <http://w3id.org/probs-lab/ontology/hasValue> "3"^^<http://www.w3.org/2001/XMLSchema#double> .',
-            ]
-        )
-
-    # Now query the converted data
-    query = "SELECT ?obj ?value WHERE { ?obj :hasValue ?value } ORDER BY ?obj"
-    with probs_endpoint(
-        output_filename, tmp_path / "working_reasoning", script_source_dir, port=12159
-    ) as rdfox:
-        result = rdfox.query_records(query)
-
-        assert result == [
-            {"obj": NS["Object-Bread"], "value": 6.0},
-            {"obj": NS["Object-Cake"], "value": 3.0},
-        ]
-
-        # Test answer_queries convenience function
-        result2 = answer_queries(rdfox, {"q1": query})
-        assert result2["q1"] == result

@@ -1,4 +1,4 @@
-@prefix probs: <http://w3id.org/probs-lab/ontology/> .
+@prefix probs: <http://w3id.org/probs-lab/ontology#> .
 @prefix : <http://w3id.org/probs-lab/ontology/data/simple/> .
 
 :Object-Bread probs:hasValue "6.0"^^xsd:double .

@@ -203,6 +203,42 @@ def probs_run_module(
     return runner
 
 
+def probs_convert_ontology(
+    ontology: Union[os.PathLike, str],
+    additional_data: Iterable[Union[os.PathLike, str]],
+    output_dir: Union[os.PathLike, str],
+    working_dir: Optional[Union[os.PathLike, str]]=None,
+    script_source_dir: Optional[Union[os.PathLike, str]]=None,
+) -> None:
+    """Load `datasources`, convert to RDF and copy result to `output_path`.
+
+    :param ontology: str contents or path to input ontology RDF data (e.g. `probs.ttl`)
+    :param additional_data: iterable of additional RDF data to include
+    :param output_dir: Path to save the resulting data/rules files in
+    :param working_dir: Path to setup rdfox in, defaults to a temporary directory
+    :param script_source_dir: Path to copy scripts from
+    """
+
+    if not isinstance(output_dir, Path):
+        output_dir = Path(output_dir)
+
+    datasources = [
+        # The ontology data itself
+        Datasource({"ontology/probs.ttl": ontology}),
+    ] + [
+        Datasource.from_files(list(additional_data))
+    ]
+
+    runner = probs_run_module("ontology-conversion", datasources, working_dir=working_dir, script_source_dir=script_source_dir)
+    with runner:
+        logger.debug("probs_convert_ontology: RDFox runner done")
+        for fn in ["probs_ontology_data.nt.gz", "probs_ontology_rules.dlog"]:
+            shutil.copy(runner.files("data") / fn, output_dir / fn)
+        logger.debug("probs_convert_ontology: Copy data done")
+
+    # Should somehow signal success or failure
+
+
 def probs_convert_data(
     datasources: AllowableDataInputs,
     output_path: Union[os.PathLike, str],
@@ -260,9 +296,27 @@ def probs_enhance_data(
     :param output_path: path to save the data
     :param working_dir: Path to setup rdfox in, defaults to a temporary directory
     :param script_source_dir: Path to copy scripts from
-    """
 
-    runner = probs_run_module("data-enhancement", datasources, working_dir=working_dir, script_source_dir=script_source_dir)
+    DEPRECATED: use `probs_kbc_hierarchy` instead.
+    """
+    probs_kbc_hierarchy(datasources, output_path, working_dir, script_source_dir)
+
+
+def probs_kbc_hierarchy(
+    datasources: AllowableDataInputs,
+    output_path: Union[os.PathLike, str],
+    working_dir: Optional[Union[os.PathLike, str]]=None,
+    script_source_dir: Optional[Union[os.PathLike, str]]=None,
+) -> None:
+    """Load input data, apply rules to enhance, and copy result to `output_path`.
+
+    :param datasources: List of :py:class:`Datasource` objects describing
+    inputs, or paths to individual input files.
+    :param output_path: path to save the data
+    :param working_dir: Path to setup rdfox in, defaults to a temporary directory
+    :param script_source_dir: Path to copy scripts from
+    """
+    runner = probs_run_module("kbc-hierarchy", datasources, working_dir=working_dir, script_source_dir=script_source_dir)
     with runner:
         logger.debug("probs_enhance_data: RDFox runner done")
         shutil.copy(runner.files("data/probs_enhanced_data.nt.gz"), output_path)
@@ -309,7 +363,7 @@ def probs_endpoint(
     ]
 
     endpoint = PRObsEndpoint(ns)
-    runner = probs_run_module("reasoning", datasources, setup_script, working_dir=working_dir, script_source_dir=script_source_dir, wait="endpoint", endpoint=endpoint)
+    runner = probs_run_module("endpoint", datasources, setup_script, working_dir=working_dir, script_source_dir=script_source_dir, wait="endpoint", endpoint=endpoint)
     with runner:
         yield endpoint
 
