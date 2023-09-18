@@ -32,7 +32,7 @@ To release a new version of the package:
 
 - Commit the new version and tag a release like "v0.1.2"
 
-- Build the package: `python setup.py sdist bdist_wheel`
+- Build the package: `python -m build`
 
 - Publish the package to PyPI: `twine upload dist/probs_runner-[...]`
 
