@@ -54,8 +54,8 @@ See [tests/README.md](tests/README.md) for more details of how to use the test r
 
 ### Choosing the ontology scripts to use
 
-The environment variable `PROBS_SCRIPT_SOURCE_DIR` can be set to specify the script source directory. For example:
+The environment variable `PROBS_MODULE_PATH` can be set to specify the script source path(s). For example:
 
 ```shell
-PROBS_SCRIPT_SOURCE_DIR=/path/to/ontology/scripts pytest
+PROBS_MODULE_PATH=/path/to/ontology-module-1:/path/to/probs-ontology pytest
 ```

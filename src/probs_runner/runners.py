@@ -57,52 +57,67 @@ AllowableDataInputs = Union[
 DEFAULT_PORT = 12112
 
 
-def _standard_input_files(source_dir, module_name):
-    if isinstance(source_dir, str):
-        source_dir = Path(source_dir)
+def _standard_input_files(
+    module_paths: Iterable[Path],
+    module_name,
+):
 
-    if source_dir is None:
-        # Use the version of the module scripts bundled with the Python package
+    # Find the module scripts in one of the paths given, or in the installed
+    # `probs_system.scripts` namespace package.
+    def _find_module_source():
+        # Look in specified paths first
+        for d in module_paths:
+            p = d / "scripts" / module_name
+            if p.exists():
+                return p
+
+        # Try to use the version of the module scripts bundled with the Python package
         try:
-            script_source_dir = importlib_resources_files("probs_system.scripts")
+            d = importlib_resources_files("probs_system.scripts")
+            if (d / module_name).exists():
+                return d / module_name
         except ModuleNotFoundError:
-            raise RuntimeError(
-                f"The probs_system.scripts package is not installed, and no source_dir has been specified."
-            )
+            pass
 
-        # Use the version of the data bundled with the Python package
-        try:
-            data_source_dir = importlib_resources_files("probs_system.data")
-        except ModuleNotFoundError:
-            raise RuntimeError(
-                f"The probs_system.data package is not installed, and no source_dir has been specified."
-            )
-
-    else:
-        # Load from file system
-        script_source_dir = source_dir / "scripts"
-        data_source_dir = source_dir / "data"
-
-    if not (script_source_dir / module_name).exists():
         raise RuntimeError(
-            f"The scripts for module '{module_name}' are not installed. Try installing the "
-            f"Python package 'probs-module-{module_name}'?"
+            f"The scripts for module '{module_name}' cannot be found. Try installing the "
+            f"Python package 'probs-module-{module_name}', or specify the path to the module scripts?"
         )
+
+    module_script_path = _find_module_source()
 
     # Standard files: scripts
     input_files: Dict[str, Union[Traversable, StringIO]] = {
-        f"scripts/{module_name}": script_source_dir / module_name,
+        f"scripts/{module_name}": module_script_path,
     }
 
-    # Need to add data files individually by discovering which are available
-    # (the MultiplexedPath from importlib.resources cannot be directly copied)
-    if not isinstance(data_source_dir, Path):
-        for path in data_source_dir._paths:
+    # Add data files from explicit directories first
+    for d in module_paths:
+        path = d / "data"
+        if path.exists():
             for p in path.iterdir():
-                rel = Path("data") / p.relative_to(path)
+                rel = str(Path("data") / p.relative_to(path))
                 input_files[rel] = p
+
+    # Use the version of the data bundled with the Python package, if available
+    try:
+        data_source_dir = importlib_resources_files("probs_system.data")
+    except ModuleNotFoundError:
+        # Only a problem if we haven't already found some other data files
+        if not module_paths:
+            raise RuntimeError(
+                f"The probs_system.data package is not installed, and no source_dir has been specified."
+            )
     else:
-        input_files["data"] = data_source_dir
+        # Need to add data files individually by discovering which are available
+        # (the MultiplexedPath from importlib.resources cannot be directly copied)
+        if not isinstance(data_source_dir, Path):
+            for path in data_source_dir._paths:
+                for p in path.iterdir():
+                    rel = Path("data") / p.relative_to(path)
+                    input_files[rel] = p
+        else:
+            input_files["data"] = data_source_dir
 
     return input_files
 
@@ -178,7 +193,17 @@ def probs_run_module(
     datasources = _prepare_datasources_arg(datasources)
 
     logger.debug("Running PRObs module %s (%s)", module, kwargs)
-    input_files = _standard_input_files(script_source_dir, module)
+
+    # Backwards compatibility
+    if script_source_dir is None:
+        script_source_dir = []
+    if isinstance(script_source_dir, (Path, str)):
+        module_paths = [Path(script_source_dir)]
+    else:
+        module_paths = [Path(p) for p in script_source_dir]
+    input_files = _standard_input_files(module_paths, module)
+
+    # TODO: case where we want to pass multiple paths to load modules
 
     load_data_path = f"scripts/{module}/load_data.rdfox"
     load_rules_path = f"scripts/{module}/load_rules.rdfox"
