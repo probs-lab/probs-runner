@@ -50,7 +50,9 @@ logger = logging.getLogger(__name__)
 
 
 # Type aliases
-AllowableDataInputs = Union[Datasource, str, Path, Iterable[Union[Datasource, str, Path]]]
+AllowableDataInputs = Union[
+    Datasource, str, Path, Iterable[Union[Datasource, str, Path]]
+]
 
 DEFAULT_PORT = 12112
 
@@ -105,7 +107,9 @@ def _standard_input_files(source_dir, module_name):
     return input_files
 
 
-def _add_datasource_to_input_files(input_files, load_data_script_file, load_rules_script_file, datasource):
+def _add_datasource_to_input_files(
+    input_files, load_data_script_file, load_rules_script_file, datasource
+):
     load_data_script_file.write("\n\n### Datasource ###\n\n")
     load_data_script_file.write(datasource.load_data_script + "\n")
 
@@ -114,9 +118,7 @@ def _add_datasource_to_input_files(input_files, load_data_script_file, load_rule
 
     for tgt, src in datasource.input_files.items():
         if tgt in input_files:
-            raise ValueError(
-                f"Duplicate entry in input_files for '{tgt}'"
-            )
+            raise ValueError(f"Duplicate entry in input_files for '{tgt}'")
         input_files[tgt] = src
 
 
@@ -136,7 +138,7 @@ def _prepare_datasources_arg(datasources: AllowableDataInputs) -> List[Datasourc
         # Assume this is a data file to load. Keep the the filename, so it's
         # easier to understand, but place it in a uniquely-named subdirectory to
         # avoid clashing with other data files.
-        bb = ds.encode('utf8') if isinstance(ds, str) else bytes(ds)
+        bb = ds.encode("utf8") if isinstance(ds, str) else bytes(ds)
         subdir = md5(bb).hexdigest()
         return Datasource.from_files([ds], data_subdir=subdir)
 
@@ -146,7 +148,7 @@ def _prepare_datasources_arg(datasources: AllowableDataInputs) -> List[Datasourc
 def probs_run_module(
     module: str,
     datasources: AllowableDataInputs,
-    setup_script: Optional[Union[List[str], str]]=None,
+    setup_script: Optional[Union[List[str], str]] = None,
     working_dir=None,
     script_source_dir=None,
     **kwargs,
@@ -194,12 +196,7 @@ def probs_run_module(
 
     script = setup_script + [f"exec scripts/{module}/master"]
 
-    runner = RDFoxRunner(
-        input_files,
-        script,
-        working_dir=working_dir,
-        **kwargs
-    )
+    runner = RDFoxRunner(input_files, script, working_dir=working_dir, **kwargs)
     return runner
 
 
@@ -207,8 +204,8 @@ def probs_convert_ontology(
     ontology: Union[os.PathLike, str],
     additional_data: Iterable[Union[os.PathLike, str]],
     output_dir: Union[os.PathLike, str],
-    working_dir: Optional[Union[os.PathLike, str]]=None,
-    script_source_dir: Optional[Union[os.PathLike, str]]=None,
+    working_dir: Optional[Union[os.PathLike, str]] = None,
+    script_source_dir: Optional[Union[os.PathLike, str]] = None,
 ) -> None:
     """Load `datasources`, convert to RDF and copy result to `output_path`.
 
@@ -225,11 +222,14 @@ def probs_convert_ontology(
     datasources = [
         # The ontology data itself
         Datasource({"ontology/probs.ttl": ontology}),
-    ] + [
-        Datasource.from_files(list(additional_data))
-    ]
+    ] + [Datasource.from_files(list(additional_data))]
 
-    runner = probs_run_module("ontology-conversion", datasources, working_dir=working_dir, script_source_dir=script_source_dir)
+    runner = probs_run_module(
+        "ontology-conversion",
+        datasources,
+        working_dir=working_dir,
+        script_source_dir=script_source_dir,
+    )
     with runner:
         logger.debug("probs_convert_ontology: RDFox runner done")
         for fn in ["probs_ontology_data.nt.gz", "probs_ontology_rules.dlog"]:
@@ -242,8 +242,8 @@ def probs_convert_ontology(
 def probs_convert_data(
     datasources: AllowableDataInputs,
     output_path: Union[os.PathLike, str],
-    working_dir: Optional[Union[os.PathLike, str]]=None,
-    script_source_dir: Optional[Union[os.PathLike, str]]=None,
+    working_dir: Optional[Union[os.PathLike, str]] = None,
+    script_source_dir: Optional[Union[os.PathLike, str]] = None,
 ) -> None:
     """Load `datasources`, convert to RDF and copy result to `output_path`.
 
@@ -254,7 +254,12 @@ def probs_convert_data(
     :param script_source_dir: Path to copy scripts from
     """
 
-    runner = probs_run_module("data-conversion", datasources, working_dir=working_dir, script_source_dir=script_source_dir)
+    runner = probs_run_module(
+        "data-conversion",
+        datasources,
+        working_dir=working_dir,
+        script_source_dir=script_source_dir,
+    )
     with runner:
         logger.debug("probs_convert_data: RDFox runner done")
         shutil.copy(runner.files("data/probs_original_data.nt.gz"), output_path)
@@ -265,8 +270,8 @@ def probs_convert_data(
 
 def probs_validate_data(
     datasources: AllowableDataInputs,
-    working_dir: Optional[Union[os.PathLike, str]]=None,
-    script_source_dir: Optional[Union[os.PathLike, str]]=None,
+    working_dir: Optional[Union[os.PathLike, str]] = None,
+    script_source_dir: Optional[Union[os.PathLike, str]] = None,
 ) -> None:
     """Load `original_data_path`, run data validation script.
 
@@ -276,7 +281,12 @@ def probs_validate_data(
     :param script_source_dir: Path to copy scripts from
     """
 
-    runner = probs_run_module("data-validation", datasources, working_dir=working_dir, script_source_dir=script_source_dir)
+    runner = probs_run_module(
+        "data-validation",
+        datasources,
+        working_dir=working_dir,
+        script_source_dir=script_source_dir,
+    )
     with runner:
         logger.debug("probs_validate_data: RDFox runner done")
 
@@ -286,8 +296,8 @@ def probs_validate_data(
 def probs_enhance_data(
     datasources: AllowableDataInputs,
     output_path: Union[os.PathLike, str],
-    working_dir: Optional[Union[os.PathLike, str]]=None,
-    script_source_dir: Optional[Union[os.PathLike, str]]=None,
+    working_dir: Optional[Union[os.PathLike, str]] = None,
+    script_source_dir: Optional[Union[os.PathLike, str]] = None,
 ) -> None:
     """Load input data, apply rules to enhance, and copy result to `output_path`.
 
@@ -305,8 +315,8 @@ def probs_enhance_data(
 def probs_kbc_hierarchy(
     datasources: AllowableDataInputs,
     output_path: Union[os.PathLike, str],
-    working_dir: Optional[Union[os.PathLike, str]]=None,
-    script_source_dir: Optional[Union[os.PathLike, str]]=None,
+    working_dir: Optional[Union[os.PathLike, str]] = None,
+    script_source_dir: Optional[Union[os.PathLike, str]] = None,
 ) -> None:
     """Load input data, apply rules to enhance, and copy result to `output_path`.
 
@@ -316,7 +326,12 @@ def probs_kbc_hierarchy(
     :param working_dir: Path to setup rdfox in, defaults to a temporary directory
     :param script_source_dir: Path to copy scripts from
     """
-    runner = probs_run_module("kbc-hierarchy", datasources, working_dir=working_dir, script_source_dir=script_source_dir)
+    runner = probs_run_module(
+        "kbc-hierarchy",
+        datasources,
+        working_dir=working_dir,
+        script_source_dir=script_source_dir,
+    )
     with runner:
         logger.debug("probs_enhance_data: RDFox runner done")
         shutil.copy(runner.files("data/probs_enhanced_data.nt.gz"), output_path)
@@ -328,11 +343,11 @@ def probs_kbc_hierarchy(
 @contextmanager
 def probs_endpoint(
     datasources: AllowableDataInputs,
-    working_dir: Optional[Union[os.PathLike, str]]=None,
-    script_source_dir: Optional[Union[os.PathLike, str]]=None,
-    port: Optional[int]=DEFAULT_PORT,
-    namespaces: Optional[dict]=None,
-    use_default_namespaces: bool=True,
+    working_dir: Optional[Union[os.PathLike, str]] = None,
+    script_source_dir: Optional[Union[os.PathLike, str]] = None,
+    port: Optional[int] = DEFAULT_PORT,
+    namespaces: Optional[dict] = None,
+    use_default_namespaces: bool = True,
 ) -> Iterator:
     """Load data sources, and start endpoint.
 
@@ -359,11 +374,19 @@ def probs_endpoint(
         ns.update(namespaces)
 
     setup_script = [
-         f'set endpoint.port "{int(port)}"',
+        f'set endpoint.port "{int(port)}"',
     ]
 
     endpoint = PRObsEndpoint(ns)
-    runner = probs_run_module("endpoint", datasources, setup_script, working_dir=working_dir, script_source_dir=script_source_dir, wait="endpoint", endpoint=endpoint)
+    runner = probs_run_module(
+        "endpoint",
+        datasources,
+        setup_script,
+        working_dir=working_dir,
+        script_source_dir=script_source_dir,
+        wait="endpoint",
+        endpoint=endpoint,
+    )
     with runner:
         yield endpoint
 
