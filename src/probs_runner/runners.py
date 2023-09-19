@@ -103,11 +103,7 @@ def _standard_input_files(
     try:
         data_source_dir = importlib_resources_files("probs_system.data")
     except ModuleNotFoundError:
-        # Only a problem if we haven't already found some other data files
-        if not module_paths:
-            raise RuntimeError(
-                f"The probs_system.data package is not installed, and no source_dir has been specified."
-            )
+        pass
     else:
         # Need to add data files individually by discovering which are available
         # (the MultiplexedPath from importlib.resources cannot be directly copied)
