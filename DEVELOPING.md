@@ -44,6 +44,8 @@ Install the Python package in a virtual environment:
 pip install -e '.[test]'
 ```
 
+Make sure the correct version of RDFox is installed and on the path (e.g. with `pip install RDFox==6.3.1`)
+
 Run the tests using pytest:
 
 ```shell

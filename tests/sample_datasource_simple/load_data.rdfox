@@ -7,7 +7,7 @@ dsource register "Simple"                                           \
     header  true                                                    \
     quote   '"'
 
-tupletable create ufrd:simple                                   \
+tupletable create simple                                        \
     dataSourceName  "Simple"                                    \
     "columns"       2                                           \
     "1"             "{Object}"                                  \
