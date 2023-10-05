@@ -35,12 +35,12 @@ class PRObsEndpoint(RDFoxEndpoint):
         SELECT ?obs ?measurement ?bound ?process ?object
         WHERE {
             ?obs a :Observation ;
-                 :hasTimePeriod ?time ;
+                 :hasTime ?time ;
                  :hasRegion ?region ;
-                 :metric ?metric ;
+                 :hasMetric ?metric ;
                  :hasRole ?role ;
                  %s
-                 :bound ?bound .
+                 :hasBound ?bound .
                  %s    
             OPTIONAL { ?obs :measurement ?measurement . }
         }
@@ -58,9 +58,9 @@ class PRObsEndpoint(RDFoxEndpoint):
 
         """Query for observations matching the given dimensions.
 
-        :param time: value for `:hasTimePeriod`
+        :param time: value for `:hasTime`
         :param region: value for `:hasRegion`
-        :param metric: value for `:metric`
+        :param metric: value for `:hasMetric`
         :param role: value for `:hasRole`
         :param object\\_: value for `:objectDefinedBy` (optional, depending on `role`)
         :param process: value for `:processDefinedBy` (optional, depending on `role`)

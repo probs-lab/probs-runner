@@ -109,13 +109,13 @@ def test_enhance_data(tmp_path, script_source_dir):
 <http://example.org/Obs> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/probs-lab/ontology#DirectObservation> .
 <http://example.org/Obs> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/prov#Entity> .
 <http://example.org/Obs> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/probs-lab/ontology#Observation> .
-<http://example.org/Obs> <http://w3id.org/probs-lab/ontology#metric> <http://qudt.org/vocab/quantitykind/Mass> .
-<http://example.org/Obs> <http://w3id.org/probs-lab/ontology#bound> <http://w3id.org/probs-lab/ontology#ExactBound> .
+<http://example.org/Obs> <http://w3id.org/probs-lab/ontology#hasMetric> <http://qudt.org/vocab/quantitykind/Mass> .
+<http://example.org/Obs> <http://w3id.org/probs-lab/ontology#hasBound> <http://w3id.org/probs-lab/ontology#ExactBound> .
 <http://example.org/Obs> <http://w3id.org/probs-lab/ontology#partOfDataset> <http://example.org/unfccc/UNFCCCData> .
 <http://example.org/Obs> <http://w3id.org/probs-lab/ontology#objectDirectlyDefinedBy> <http://example.org/unfccc/N2O> .
 <http://example.org/Obs> <http://w3id.org/probs-lab/ontology#processDirectlyDefinedBy> <http://example.org/unfccc/1.> .
 <http://example.org/Obs> <http://w3id.org/probs-lab/ontology#hasRole> <http://w3id.org/probs-lab/ontology#ProcessOutput> .
-<http://example.org/Obs> <http://w3id.org/probs-lab/ontology#hasTimePeriod> <http://w3id.org/probs-lab/ontology#TimePeriod_YearOf2018> .
+<http://example.org/Obs> <http://w3id.org/probs-lab/ontology#hasTime> <http://w3id.org/probs-lab/ontology#TimePeriod_YearOf2018> .
 <http://example.org/Obs> <http://w3id.org/probs-lab/ontology#hasRegion> <http://w3id.org/probs-lab/ontology#RegionGBR> .
 <http://example.org/unfccc/N2O_equiv> <http://w3id.org/probs-lab/ontology#objectEquivalentTo> <http://example.org/unfccc/N2O> .
         """
@@ -140,7 +140,7 @@ def _setup_test_nt_gz_data(p, object_name):
     with gzip.open(p, "wt") as f:
         f.write(
             f"""
-<http://w3id.org/probs-lab/ontology/data/simple/{object_name}> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/probs-lab/ontology/Object> .
+<http://w3id.org/probs-lab/ontology/data/simple/{object_name}> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/probs-lab/ontology#Object> .
 """
         )
 
@@ -151,7 +151,7 @@ def _setup_test_ttl_data(p, object_name):
         f.write(
             f"""
 @prefix simple: <http://w3id.org/probs-lab/ontology/data/simple/> .
-@prefix probs: <http://w3id.org/probs-lab/ontology/> .
+@prefix probs: <http://w3id.org/probs-lab/ontology#> .
 simple:{object_name} a probs:Object .
 """
         )

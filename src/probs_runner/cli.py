@@ -260,7 +260,7 @@ INSPECT_OBSERVATIONS_SUMMARY = """
 SELECT ?p (COUNT(DISTINCT ?o) AS ?count) (GROUP_CONCAT(DISTINCT STR(?o)) AS ?values)
 WHERE {
   ?Observation a :Observation; ?p ?o .
-  FILTER(?p IN (:processDefinedBy, :objectDefinedBy, :hasRegion, :hasTimePeriod, :hasRole, :hasMetric))
+  FILTER(?p IN (:processDefinedBy, :objectDefinedBy, :hasRegion, :hasTime, :hasRole, :hasMetric))
 }
 GROUP BY ?p
 ORDER BY ?p
@@ -353,7 +353,7 @@ def inspect(obj, inputs, subject, summary, format):
             data = sorted(
                 data,
                 key=lambda d: (tuple(sorted(d[1]["probs:hasRegion"])),
-                               tuple(sorted(d[1]["probs:hasTimePeriod"])),
+                               tuple(sorted(d[1]["probs:hasTime"])),
                                tuple(sorted(d[1]["probs:hasRole"])),
                                tuple(sorted(d[1].get("probs:objectDefinedBy", []))),
                                tuple(sorted(d[1].get("probs:processDefinedBy", []))),
@@ -405,7 +405,7 @@ def _inspect_observation_graphviz(rdfox, subject):
     value = ""
     label_values = [
         "probs:hasRegion",
-        "probs:hasTimePeriod",
+        "probs:hasTime",
         "probs:hasRole",
     ]
     for p in label_values:
@@ -499,7 +499,7 @@ def _inspect_observation_data(rdfox, subject):
 def _inspect_observation_html(rdfox, subject, values, labels):
     label_values = [
         "probs:hasRegion",
-        "probs:hasTimePeriod",
+        "probs:hasTime",
         "probs:hasRole",
     ]
 
