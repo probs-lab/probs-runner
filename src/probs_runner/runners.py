@@ -31,12 +31,12 @@ from pathlib import Path
 from hashlib import md5
 
 try:
-    from importlib.resources import files as importlib_resources_files
-    from importlib.abc import Traversable
-except (ImportError, AttributeError):
-    # Try backported to PY<37 `importlib_resources`.
+    # Try backported `importlib_resources` first if present.
     from importlib_resources import files as importlib_resources_files
     from importlib_resources.abc import Traversable
+except (ImportError, AttributeError):
+    from importlib.resources import files as importlib_resources_files
+    from importlib.abc import Traversable
 
 import pandas as pd
 
