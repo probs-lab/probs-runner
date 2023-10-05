@@ -31,7 +31,7 @@ jobs:
         python -m pip install 'rdfox==${{ matrix.rdfox-version }}'
     - name: Run tests
       run: |
-        python -m pytest
+        python -m pytest -vvv --log-cli-level=DEBUG
       env:
         RDFOX_LICENSE_CONTENT: ${{ secrets.RDFOX_LICENSE }}
 
