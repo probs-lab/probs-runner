@@ -223,27 +223,22 @@ def probs_run_module(
 
 def probs_convert_ontology(
     ontology: Union[os.PathLike, str],
-    additional_data: Iterable[Union[os.PathLike, str]],
-    output_dir: Union[os.PathLike, str],
+    output_path: Union[os.PathLike, str],
     working_dir: Optional[Union[os.PathLike, str]] = None,
     script_source_dir: Optional[Union[os.PathLike, str]] = None,
 ) -> None:
-    """Load `datasources`, convert to RDF and copy result to `output_path`.
+    """Load a probs.ttl file, convert to Datalog rules and save to `output_path`.
 
     :param ontology: str contents or path to input ontology RDF data (e.g. `probs.ttl`)
-    :param additional_data: iterable of additional RDF data to include
-    :param output_dir: Path to save the resulting data/rules files in
+    :param output_path: Path to save the resulting rules to
     :param working_dir: Path to setup rdfox in, defaults to a temporary directory
     :param script_source_dir: Path to copy scripts from
     """
 
-    if not isinstance(output_dir, Path):
-        output_dir = Path(output_dir)
-
     datasources = [
         # The ontology data itself
         Datasource({"ontology/probs.ttl": ontology}),
-    ] + [Datasource.from_files(list(additional_data))]
+    ]
 
     runner = probs_run_module(
         "ontology-conversion",
@@ -253,8 +248,7 @@ def probs_convert_ontology(
     )
     with runner:
         logger.debug("probs_convert_ontology: RDFox runner done")
-        for fn in ["probs_ontology_data.nt.gz", "probs_ontology_rules.dlog"]:
-            shutil.copy(runner.files("data") / fn, output_dir / fn)
+        shutil.copy(runner.files("data") / "probs_ontology_rules.dlog", output_path)
         logger.debug("probs_convert_ontology: Copy data done")
 
     # Should somehow signal success or failure
