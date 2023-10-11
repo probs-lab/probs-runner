@@ -259,6 +259,7 @@ def probs_convert_data(
     output_path: Union[os.PathLike, str],
     working_dir: Optional[Union[os.PathLike, str]] = None,
     script_source_dir: Optional[Union[os.PathLike, str]] = None,
+    fact_domain: Optional[str] = None,
 ) -> None:
     """Load `datasources`, convert to RDF and copy result to `output_path`.
 
@@ -267,11 +268,21 @@ def probs_convert_data(
     :param output_path: Path to save the data
     :param working_dir: Path to setup rdfox in, defaults to a temporary directory
     :param script_source_dir: Path to copy scripts from
+    :param fact_domain: RDFox fact domain to export
     """
+
+    setup_script = [
+        # FIXME This is abusing the RDFox arguments, but it turns out that it
+        # works to set a variable called "1" before calling an RDFox script with
+        # no positional arguments, and the value of this variable appears as if
+        # it was a positional argument.
+        f'set 1 "{fact_domain or ""}"'
+    ]
 
     runner = probs_run_module(
         "data-conversion",
         datasources,
+        setup_script=setup_script,
         working_dir=working_dir,
         script_source_dir=script_source_dir,
     )

@@ -62,8 +62,9 @@ def cli(ctx, verbose, scripts, working_dir):
 @cli.command()
 @click.argument("inputs", nargs=-1, type=click.Path(exists=True, path_type=pathlib.Path))
 @click.argument("output", nargs=1, type=click.Path(path_type=pathlib.Path))
+@click.option("--fact-domain", help="RDFox fact domain to export", type=str)
 @click.pass_obj
-def convert_data(obj, inputs, output):
+def convert_data(obj, inputs, output, fact_domain):
     "Convert input data into PRObs RDF format."
 
     click.echo(f"Converting {len(inputs)} inputs...", err=True)
@@ -72,7 +73,11 @@ def convert_data(obj, inputs, output):
     datasources = [load_datasource(path) for path in inputs]
     working_dir = obj["working_dir"]
     script_source_dir = obj["script_source_dir"]
-    probs_convert_data(datasources, output, working_dir, script_source_dir)
+    probs_convert_data(datasources, output, working_dir, script_source_dir, fact_domain)
+
+    click.echo(f"Output written to {click.format_filename(output)}.", err=True)
+
+
 @cli.command()
 @click.argument("ontology", nargs=1, type=click.Path(exists=True, path_type=pathlib.Path))
 @click.argument("output", nargs=1, type=click.Path(path_type=pathlib.Path))
