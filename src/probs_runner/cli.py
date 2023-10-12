@@ -12,7 +12,7 @@ from rdflib import URIRef
 from rdflib.namespace import RDF, RDFS
 
 from .namespace import PROBS
-from .runners import NAMESPACES, probs_convert_data, probs_convert_ontology, probs_validate_data, probs_enhance_data, probs_endpoint
+from .runners import NAMESPACES, probs_convert_data, probs_convert_ontology, probs_validate_data, probs_kbc_hierarchy, probs_endpoint
 from .datasource import load_datasource
 
 
@@ -117,15 +117,15 @@ def validate_data(obj, inputs):
 @click.argument("inputs", nargs=-1, type=click.Path(exists=True, path_type=pathlib.Path))
 @click.argument("output", nargs=1, type=click.Path(path_type=pathlib.Path))
 @click.pass_obj
-def enhance_data(obj, inputs, output):
+def kbc_hierarchy(obj, inputs, output):
     "Run enhancement scripts on PRObs RDF data."
 
-    click.echo(f"Enhancing {len(inputs)} inputs...", err=True)
+    click.echo(f"Enhancing {len(inputs)} inputs with kbc-hierarchy...", err=True)
 
     # Load data sources
     working_dir = obj["working_dir"]
     script_source_dir = obj["script_source_dir"]
-    probs_enhance_data(inputs, output, working_dir, script_source_dir)
+    probs_kbc_hierarchy(inputs, output, working_dir, script_source_dir)
 
     click.echo(f"Output written to {click.format_filename(output)}.", err=True)
 
