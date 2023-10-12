@@ -84,7 +84,7 @@ class PRObsEndpoint(RDFoxEndpoint):
                  :objectDefinedBy ?object;""" 
             other2 += """
             ?object :hasClassificationCode ?code .
-            ?code :codeName ?cname .
+            ?code rdfs:label ?cname .
             FILTER (STR(?cname) = %s)""" % ("\"" + object_code + "\"")
         else:
             other2 += """
@@ -97,7 +97,7 @@ class PRObsEndpoint(RDFoxEndpoint):
             other1 += """
                  :processDefinedBy ?process ;"""
             other2 += """
-            ?process :codeName ?code .
+            ?process rdfs:label ?code .
             FILTER (STR(?code) = %s)""" % ("\"" + process_code + "\"")
         else:
             other2 += """
