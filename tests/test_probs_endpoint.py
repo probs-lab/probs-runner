@@ -109,8 +109,8 @@ def test_probs_endpoint_get_observations_by_process_code(tmp_path, script_source
 <http://example.org/Obs> <http://w3id.org/probs-lab/ontology#measurement> "8551330"^^<http://www.w3.org/2001/XMLSchema#double> .
 <http://example.org/Obs> <http://w3id.org/probs-lab/ontology#objectDefinedBy> <http://example.org/unfccc/N2O> .
 <http://example.org/Obs> <http://w3id.org/probs-lab/ontology#processDefinedBy> <http://example.org/unfccc/1.> .
-<http://example.org/unfccc/1.> <http://w3id.org/probs-lab/ontology#processName> "1.  Energy>" .
-<http://example.org/unfccc/1.> <http://w3id.org/probs-lab/ontology#codeName> "1_with_LULUCF" .
+<http://example.org/unfccc/1.> <http://www.w3.org/2000/01/rdf-schema#label> "1.  Energy>" .
+<http://example.org/unfccc/1.> <http://www.w3.org/2000/01/rdf-schema#label> "1_with_LULUCF" .
 <http://example.org/Obs> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/probs-lab/ontology#DirectObservation> .
 <http://example.org/Obs> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/ns/prov#Entity> .
 <http://example.org/Obs> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/probs-lab/ontology#Observation> .
@@ -181,9 +181,9 @@ def test_probs_endpoint_get_observations_by_object_code(tmp_path, script_source_
 <http://example.org/Obs> <http://w3id.org/probs-lab/ontology#hasTime> <http://w3id.org/probs-lab/ontology#TimePeriod_YearOf2016> .
 <http://example.org/Obs> <http://w3id.org/probs-lab/ontology#hasRegion> <http://w3id.org/probs-lab/ontology#RegionGBR> .
 <http://example.org/prodcom/Object-1234> <http://w3id.org/probs-lab/ontology#hasClassificationCode> <http://example.org/prodcom/2016/ClassificationCode-1234> .
-<http://example.org/prodcom/Object-1234> <http://w3id.org/probs-lab/ontology#objectName> "PRODCOM Object corresponding to Code 1234" .
+<http://example.org/prodcom/Object-1234> <http://www.w3.org/2000/01/rdf-schema#label> "PRODCOM Object corresponding to Code 1234" .
 <http://example.org/prodcom/2016/ClassificationCode-1234> <http://w3id.org/probs-lab/ontology#codeDescription> "An test PRODCOM commodity" .
-<http://example.org/prodcom/2016/ClassificationCode-1234> <http://w3id.org/probs-lab/ontology#codeName> "1234" .
+<http://example.org/prodcom/2016/ClassificationCode-1234> <http://www.w3.org/2000/01/rdf-schema#label> "1234" .
 <http://example.org/prodcom/2016/ClassificationCode-1234> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.org/prodcom/ClassificationCode> .
         """)
 
