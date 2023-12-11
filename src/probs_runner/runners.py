@@ -98,6 +98,7 @@ def _standard_input_files(
             for p in path.iterdir():
                 rel = str(Path("data") / p.relative_to(path))
 
+                # FIXME: remove when RDFox supports gzip on Windows.
                 # Work around [lack of] compression by RDFox: if needed, make a
                 # copy of the data file that's [de]compressed
                 p = prepare_file_for_rdfox(p, rel)
@@ -117,6 +118,7 @@ def _standard_input_files(
                 for p in path.iterdir():
                     rel = Path("data") / p.relative_to(path)
 
+                    # FIXME: remove when RDFox supports gzip on Windows.
                     # Work around [lack of] compression by RDFox: if needed,
                     # make a copy of the data file that's [de]compressed
                     p = prepare_file_for_rdfox(p, rel)
@@ -141,6 +143,7 @@ def _add_datasource_to_input_files(
         if tgt in input_files:
             raise ValueError(f"Duplicate entry in input_files for '{tgt}'")
 
+        # FIXME: remove when RDFox supports gzip on Windows.
         # Work around [lack of] compression by RDFox: if needed, make a copy of
         # the data file that's [de]compressed
         src = prepare_file_for_rdfox(src, tgt)
