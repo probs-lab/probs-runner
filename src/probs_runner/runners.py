@@ -97,6 +97,11 @@ def _standard_input_files(
         if path.exists():
             for p in path.iterdir():
                 rel = str(Path("data") / p.relative_to(path))
+
+                # Work around [lack of] compression by RDFox: if needed, make a
+                # copy of the data file that's [de]compressed
+                p = prepare_file_for_rdfox(p, rel)
+
                 input_files[rel] = p
 
     # Use the version of the data bundled with the Python package, if available
@@ -111,6 +116,11 @@ def _standard_input_files(
             for path in data_source_dir._paths:
                 for p in path.iterdir():
                     rel = Path("data") / p.relative_to(path)
+
+                    # Work around [lack of] compression by RDFox: if needed,
+                    # make a copy of the data file that's [de]compressed
+                    p = prepare_file_for_rdfox(p, rel)
+
                     input_files[rel] = p
         else:
             input_files["data"] = data_source_dir
