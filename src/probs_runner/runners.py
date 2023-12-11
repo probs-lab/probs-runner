@@ -26,7 +26,6 @@ from contextlib import contextmanager
 import logging
 from typing import List, Dict, Iterable, Iterator, Union, Optional
 from io import StringIO
-import shutil
 from pathlib import Path
 from hashlib import md5
 
@@ -45,6 +44,7 @@ from rdfox_runner import RDFoxRunner
 from .datasource import Datasource
 from .namespace import NAMESPACES
 from .endpoint import PRObsEndpoint
+from .utils import prepare_file_for_rdfox, copy_from_rdfox
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +97,12 @@ def _standard_input_files(
         if path.exists():
             for p in path.iterdir():
                 rel = str(Path("data") / p.relative_to(path))
+
+                # FIXME: remove when RDFox supports gzip on Windows.
+                # Work around [lack of] compression by RDFox: if needed, make a
+                # copy of the data file that's [de]compressed
+                p = prepare_file_for_rdfox(p, rel)
+
                 input_files[rel] = p
 
     # Use the version of the data bundled with the Python package, if available
@@ -111,6 +117,12 @@ def _standard_input_files(
             for path in data_source_dir._paths:
                 for p in path.iterdir():
                     rel = Path("data") / p.relative_to(path)
+
+                    # FIXME: remove when RDFox supports gzip on Windows.
+                    # Work around [lack of] compression by RDFox: if needed,
+                    # make a copy of the data file that's [de]compressed
+                    p = prepare_file_for_rdfox(p, rel)
+
                     input_files[rel] = p
         else:
             input_files["data"] = data_source_dir
@@ -130,6 +142,12 @@ def _add_datasource_to_input_files(
     for tgt, src in datasource.input_files.items():
         if tgt in input_files:
             raise ValueError(f"Duplicate entry in input_files for '{tgt}'")
+
+        # FIXME: remove when RDFox supports gzip on Windows.
+        # Work around [lack of] compression by RDFox: if needed, make a copy of
+        # the data file that's [de]compressed
+        src = prepare_file_for_rdfox(src, tgt)
+
         input_files[tgt] = src
 
 
@@ -248,7 +266,7 @@ def probs_convert_ontology(
     )
     with runner:
         logger.debug("probs_convert_ontology: RDFox runner done")
-        shutil.copy(runner.files("data") / "probs_ontology_rules.dlog", output_path)
+        copy_from_rdfox(runner.files("data") / "probs_ontology_rules.dlog", output_path)
         logger.debug("probs_convert_ontology: Copy data done")
 
     # Should somehow signal success or failure
@@ -288,7 +306,7 @@ def probs_convert_data(
     )
     with runner:
         logger.debug("probs_convert_data: RDFox runner done")
-        shutil.copy(runner.files("data/probs_original_data.nt.gz"), output_path)
+        copy_from_rdfox(runner.files("data/probs_original_data.nt.gz"), output_path)
         logger.debug("probs_convert_data: Copy data done")
 
     # Should somehow signal success or failure
@@ -360,7 +378,7 @@ def probs_kbc_hierarchy(
     )
     with runner:
         logger.debug("probs_enhance_data: RDFox runner done")
-        shutil.copy(runner.files("data/probs_enhanced_data.nt.gz"), output_path)
+        copy_from_rdfox(runner.files("data/probs_enhanced_data.nt.gz"), output_path)
         logger.debug("probs_enhance_data: Copy data done")
 
     # Should somehow signal success or failure
