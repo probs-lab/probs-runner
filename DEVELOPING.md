@@ -32,7 +32,7 @@ To release a new version of the package:
 
 - Commit the new version and tag a release like "v0.1.2"
 
-- Build the package: `python setup.py sdist bdist_wheel`
+- Build the package: `python -m build`
 
 - Publish the package to PyPI: `twine upload dist/probs_runner-[...]`
 
@@ -44,6 +44,8 @@ Install the Python package in a virtual environment:
 pip install -e '.[test]'
 ```
 
+Make sure the correct version of RDFox is installed and on the path (e.g. with `pip install RDFox==6.3.1`)
+
 Run the tests using pytest:
 
 ```shell
@@ -51,3 +53,11 @@ pytest
 ```
 
 See [tests/README.md](tests/README.md) for more details of how to use the test runner.
+
+### Choosing the ontology scripts to use
+
+The environment variable `PROBS_MODULE_PATH` can be set to specify the script source path(s). For example:
+
+```shell
+PROBS_MODULE_PATH=/path/to/ontology-module-1:/path/to/probs-ontology pytest
+```

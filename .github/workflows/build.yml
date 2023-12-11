@@ -9,40 +9,47 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
+  test:
 
-    runs-on: ${{ matrix.config.os }}
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        python-version: [3.8]
-        config:
-          - os: ubuntu-latest
-            url: https://rdfox-distribution.s3.eu-west-2.amazonaws.com/release/v4.1.0/RDFox-linux-4.1.0.zip
-            name: RDFox
-            pathInArchive: RDFox-linux-4.1.0/RDFox
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        rdfox-version: ["6.3.1"]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install RDFox
-      uses: engineerd/configurator@v0.0.6
-      with:
-        name: ${{ matrix.config.name }}
-        url: ${{ matrix.config.url }}
-        pathInArchive: ${{ matrix.config.pathInArchive }}
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install '.[docs,test]'
+        python -m pip install '.[test]'
+        python -m pip install 'rdfox==${{ matrix.rdfox-version }}'
     - name: Run tests
       run: |
-        python -m pytest
+        python -m pytest -vvv --log-cli-level=DEBUG
       env:
         RDFOX_LICENSE_CONTENT: ${{ secrets.RDFOX_LICENSE }}
+
+  docs:
+    needs: test
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: 3.11
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install '.[docs]'
     - name: Build documentation
       run: |
         jupyter-book build docs

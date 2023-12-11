@@ -1,12 +1,31 @@
 from .runners import (
-    ProbsFacts,
+    probs_convert_ontology,
     probs_convert_data,
-    probs_query_data,
+    probs_validate_data,
+    probs_enhance_data,
+    probs_kbc_hierarchy,
     probs_endpoint,
-    probs_convert_and_query_data,
+    answer_queries,
+    connect_to_endpoint,
 )
+from .endpoint import PRObsEndpoint, Observation
 from .datasource import Datasource, load_datasource
-from .namespace import PROBS
+from .namespace import PROBS, PROV, QUANTITYKIND, NAMESPACES
 
-# Old name
-answer_queries_with_rdfox = probs_convert_and_query_data
+__all__ = [
+    "PRObsEndpoint",
+    "Observation",
+    "probs_convert_ontology",
+    "probs_convert_data",
+    "probs_validate_data",
+    "probs_enhance_data",
+    "probs_kbc_hierarchy",
+    "probs_endpoint",
+    "answer_queries",
+    "Datasource",
+    "load_datasource",
+    "PROBS",
+    "PROV",
+    "QUANTITYKIND",
+    "NAMESPACES",
+]
