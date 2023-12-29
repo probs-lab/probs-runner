@@ -109,9 +109,9 @@ class Datasource:
         dest_dir = Path("data")
         if data_subdir is not None:
             dest_dir = dest_dir / data_subdir
-            dir_setup = f'set dir.datasource "\\$\\(dir.facts\\)/{data_subdir}/"\n'
+            dir_setup = f'set dir.datasource "$(dir.facts)/{data_subdir}/"\n'
         else:
-            dir_setup = 'set dir.datasource "\\$\\(dir.facts\\)/"\n'
+            dir_setup = 'set dir.datasource "$(dir.facts)/"\n'
 
         input_files = {Path(k): v for k, v in input_files.items()}
 
