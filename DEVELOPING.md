@@ -75,14 +75,13 @@ The folder containing the scripts and data needs to be structured as follows:
 
 ### Choosing the ontology scripts to use
 
-The environment variable `PROBS_MODULE_PATH` can be set to specify the script source path(s). For example:
+The environment variable `PROBS_MODULE_PATH` can be set to specify the script source path(s). For example to specify the script sources to use when running the tests: 
 
 ```shell
 PROBS_MODULE_PATH=/path/to/ontology-module-1:/path/to/probs-ontology pytest
 ```
+ 
+The parameter `script_source_dir`, which can be passed to probs-runner functions such as ```probs_convert_data``` (see [runners.py](src/probs_runner/runners.py) for defined functions) or used on the `probs-runner` command line, can also be used to specify the script source paths. This parameter will override any value set for variable `PROBS_MODULE_PATH`.
+To test probs-runner using this method to define script sources, edit the file [tests/conftest.py](tests/conftest.py) to specify the value for `script_src_dir`.
 
-The parameter `script_source_dir`, which can be passed to probs-runner functions such as ```probs_convert_data``` (see [runners.py](src/probs_runner/runners.py) for defined functions) or used on the `probs-runner` command line, can be used to specify the script source paths. This parameter will override any value set for variable `PROBS_MODULE_PATH`.
-
-To test probs-runner using these script sources, edit the file [tests/conftest.py](tests/conftest.py) to specify `PROBS_MODULE_PATH` or `script_src_dir`.
-
-If no appropriate scripts are found in `script_source_dir` or `PROBS_MODULE_PATH` when running a module, probs-runner will look for installed scripts in a `probs_system` resource located in libraries containing installed Python packages (e.g. the `site-packages` folder). 
+If no appropriate scripts are found in `script_source_dir` or `PROBS_MODULE_PATH` when running a module, probs-runner will look for installed scripts in a `probs_system` resource located in libraries containing installed Python packages (e.g. the `site-packages` folder).

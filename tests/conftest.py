@@ -7,9 +7,5 @@ from pathlib import Path
 
 @pytest.fixture
 def script_source_dir():
-#    if "PROBS_MODULE_PATH" in os.environ:
-#        script_source_dir = os.environ["PROBS_MODULE_PATH"].split(os.pathsep)
-#    else:
     script_source_dir = None
-    os.environ["PROBS_MODULE_PATH"]=""
     return script_source_dir
