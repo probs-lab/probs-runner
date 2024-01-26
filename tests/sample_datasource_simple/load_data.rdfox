@@ -1,5 +1,5 @@
 prefix ufrd: <http://w3id.org/probs-lab/ontology/raw_data/>
-prefix simple: <http://w3id.org/probs-lab/ontology/data/simple/>
+prefix simple: <http://w3id.org/probs-lab/data/simple/>
 
 dsource register "Simple"                                           \
     type    delimitedFile                                           \

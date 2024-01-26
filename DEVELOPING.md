@@ -54,6 +54,25 @@ pytest
 
 See [tests/README.md](tests/README.md) for more details of how to use the test runner.
 
+### Structure for ontology scripts
+
+Each probs-runner module (e.g. `data-conversion` or `kbc-hierarchy`) will require suitable scripts (and possibly data files) for use in running RDFox. Installation of the testing virtual environment described above will install scripts for use with the [Physical Resources Observatory \(PRObs\) Ontology](https://github.com/probs-lab/probs-ontology.git).
+The folder containing the scripts and data needs to be structured as follows:
+
+* script-source-folder-name
+    * scripts
+        * module1-name
+            * master.rdfox
+            * load\_data.rdfox
+            * other scripts for module 1 ...
+        * module2-name
+            * master.rdfox
+            * load\_data.rdfox
+            * other scripts for module 2 ...
+        * other modules ...
+    * data
+
+
 ### Choosing the ontology scripts to use
 
 The environment variable `PROBS_MODULE_PATH` can be set to specify the script source path(s). For example:
@@ -61,3 +80,9 @@ The environment variable `PROBS_MODULE_PATH` can be set to specify the script so
 ```shell
 PROBS_MODULE_PATH=/path/to/ontology-module-1:/path/to/probs-ontology pytest
 ```
+
+The parameter `script_source_dir`, which can be passed to probs-runner functions such as ```probs_convert_data``` (see [runners.py](src/probs_runner/runners.py) for defined functions) or used on the `probs-runner` command line, can be used to specify the script source paths. This parameter will override any value set for variable `PROBS_MODULE_PATH`.
+
+To test probs-runner using these script sources, edit the file [tests/conftest.py](tests/conftest.py) to specify `PROBS_MODULE_PATH` or `script_src_dir`.
+
+If no appropriate scripts are found in `script_source_dir` or `PROBS_MODULE_PATH` when running a module, probs-runner will look for installed scripts in a `probs_system` resource located in libraries containing installed Python packages (e.g. the `site-packages` folder). 

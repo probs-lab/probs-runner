@@ -10,14 +10,14 @@ from probs_runner import (
     PROBS,
     load_datasource,
     probs_convert_data,
+    probs_kbc_hierarchy,
     probs_enhance_data,
     probs_endpoint,
     answer_queries,
 )
 
 
-#NS = Namespace("https://ukfires.org/probs/ontology/data/simple/")
-NS = Namespace("http://w3id.org/probs-lab/ontology/data/simple/")
+NS = Namespace("http://w3id.org/probs-lab/data/simple/")
 
 
 def test_convert_data_csv(tmp_path, script_source_dir):
@@ -33,7 +33,6 @@ def test_convert_data_csv(tmp_path, script_source_dir):
     result = Graph()
     with gzip.open(output_filename, "r") as f:
         result.parse(f, format="nt")
-
     # TODO: should make the test case use the proper ontology
     assert (NS["Object-Bread"], PROBS.hasValue, Literal(6.0)) in result
 
@@ -51,7 +50,6 @@ def test_convert_data_ttl_from_dir(tmp_path, script_source_dir):
     result = Graph()
     with gzip.open(output_filename, "r") as f:
         result.parse(f, format="nt")
-
     # TODO: should make the test case use the proper ontology
     assert (NS["Object-Bread"], PROBS.hasValue, Literal(6.0)) in result
 
@@ -63,13 +61,11 @@ def test_convert_data_ttl_directly(tmp_path, script_source_dir):
     probs_convert_data(
         [source], output_filename, tmp_path / "working", script_source_dir
     )
-
     # Should check for success or failure
 
     result = Graph()
     with gzip.open(output_filename, "r") as f:
         result.parse(f, format="nt")
-
     # TODO: should make the test case use the proper ontology
     assert (NS["Object-Bread"], PROBS.hasValue, Literal(6.0)) in result
 
@@ -121,7 +117,7 @@ def test_enhance_data(tmp_path, script_source_dir):
         """
         )
 
-    probs_enhance_data(
+    probs_kbc_hierarchy(
         original_filename,
         enhanced_filename,
         tmp_path / "working_enhanced",
@@ -162,7 +158,7 @@ def test_enhance_data_string_path(tmp_path, script_source_dir):
     enhanced_filename = tmp_path / "enhanced.nt.gz"
     _setup_test_nt_gz_data(original_filename, "Object-Bread")
 
-    probs_enhance_data(
+    probs_kbc_hierarchy(
         str(original_filename),
         enhanced_filename,
         tmp_path / "working_enhanced",

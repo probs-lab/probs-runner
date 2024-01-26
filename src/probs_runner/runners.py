@@ -210,7 +210,10 @@ def probs_run_module(
 
     # Backwards compatibility
     if script_source_dir is None:
-        script_source_dir = []
+        if "PROBS_MODULE_PATH" in os.environ:
+            script_source_dir = os.environ["PROBS_MODULE_PATH"].split(os.pathsep)
+        else:
+            script_source_dir = []
     if isinstance(script_source_dir, (Path, str)):
         module_paths = [Path(script_source_dir)]
     else:
