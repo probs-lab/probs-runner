@@ -92,10 +92,12 @@ def _standard_input_files(
     }
 
     # Add data files from explicit directories first
+    found_data_files = False
     for d in module_paths:
         path = d / "data"
         if path.exists():
             for p in path.iterdir():
+                found_data_files = True
                 rel = str(Path("data") / p.relative_to(path))
 
                 # FIXME: remove when RDFox supports gzip on Windows.
@@ -105,27 +107,28 @@ def _standard_input_files(
 
                 input_files[rel] = p
 
-    # Use the version of the data bundled with the Python package, if available
-    try:
-        data_source_dir = importlib_resources_files("probs_system.data")
-    except ModuleNotFoundError:
-        pass
-    else:
-        # Need to add data files individually by discovering which are available
-        # (the MultiplexedPath from importlib.resources cannot be directly copied)
-        if not isinstance(data_source_dir, Path):
-            for path in data_source_dir._paths:
-                for p in path.iterdir():
-                    rel = Path("data") / p.relative_to(path)
-
-                    # FIXME: remove when RDFox supports gzip on Windows.
-                    # Work around [lack of] compression by RDFox: if needed,
-                    # make a copy of the data file that's [de]compressed
-                    p = prepare_file_for_rdfox(p, rel)
-
-                    input_files[rel] = p
+    # if no data files found, use the version of the data bundled with the Python package
+    if not found_data_files:
+        try:
+            data_source_dir = importlib_resources_files("probs_system.data")
+        except ModuleNotFoundError:
+            pass
         else:
-            input_files["data"] = data_source_dir
+            # Need to add data files individually by discovering which are available
+            # (the MultiplexedPath from importlib.resources cannot be directly copied)
+            if not isinstance(data_source_dir, Path):
+                for path in data_source_dir._paths:
+                    for p in path.iterdir():
+                        rel = Path("data") / p.relative_to(path)
+
+                        # FIXME: remove when RDFox supports gzip on Windows.
+                        # Work around [lack of] compression by RDFox: if needed,
+                        # make a copy of the data file that's [de]compressed
+                        p = prepare_file_for_rdfox(p, rel)
+
+                        input_files[rel] = p
+            else:
+                input_files["data"] = data_source_dir
 
     return input_files
 
