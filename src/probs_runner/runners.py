@@ -103,9 +103,10 @@ def _standard_input_files(
                 # copy of the data file that's [de]compressed
                 p = prepare_file_for_rdfox(p, rel)
 
-                input_files[rel] = p
+                input_files[str(rel)] = p
 
-    # Use the version of the data bundled with the Python package, if available
+    # Use the version of the data bundled with the Python package, if available,
+    # but don't overwrite files from explicit path above.
     try:
         data_source_dir = importlib_resources_files("probs_system.data")
     except ModuleNotFoundError:
@@ -114,18 +115,19 @@ def _standard_input_files(
         # Need to add data files individually by discovering which are available
         # (the MultiplexedPath from importlib.resources cannot be directly copied)
         if not isinstance(data_source_dir, Path):
-            for path in data_source_dir._paths:
-                for p in path.iterdir():
-                    rel = Path("data") / p.relative_to(path)
-
-                    # FIXME: remove when RDFox supports gzip on Windows.
-                    # Work around [lack of] compression by RDFox: if needed,
-                    # make a copy of the data file that's [de]compressed
-                    p = prepare_file_for_rdfox(p, rel)
-
-                    input_files[rel] = p
+            paths = data_source_dir._paths
         else:
-            input_files["data"] = data_source_dir
+            paths = [data_source_dir]
+        for path in paths:
+            for p in path.iterdir():
+                rel = Path("data") / p.relative_to(path)
+
+                # FIXME: remove when RDFox supports gzip on Windows.
+                # Work around [lack of] compression by RDFox: if needed,
+                # make a copy of the data file that's [de]compressed
+                p = prepare_file_for_rdfox(p, rel)
+                if str(rel) not in input_files.keys():
+                    input_files[str(rel)] = p
 
     return input_files
 
@@ -210,7 +212,10 @@ def probs_run_module(
 
     # Backwards compatibility
     if script_source_dir is None:
-        script_source_dir = []
+        if "PROBS_MODULE_PATH" in os.environ:
+            script_source_dir = os.environ["PROBS_MODULE_PATH"].split(os.pathsep)
+        else:
+            script_source_dir = []
     if isinstance(script_source_dir, (Path, str)):
         module_paths = [Path(script_source_dir)]
     else:
