@@ -321,7 +321,7 @@ def probs_validate_data(
     datasources: AllowableDataInputs,
     working_dir: Optional[Union[os.PathLike, str]] = None,
     script_source_dir: Optional[Union[os.PathLike, str]] = None,
-) -> None:
+) -> dict[str, str]:
     """Load `original_data_path`, run data validation script.
 
     :param datasources: List of :py:class:`Datasource` objects describing
@@ -336,11 +336,16 @@ def probs_validate_data(
         working_dir=working_dir,
         script_source_dir=script_source_dir,
     )
+    errors = {}
     with runner:
         logger.debug("probs_validate_data: RDFox runner done")
+        for output_file in runner.files("data").glob("test_*.log"):
+            test_name = output_file.stem.replace("test_", "") # filename without extension
+            result = output_file.read_text()
+            if result:
+                errors[test_name] = result
 
-    # Should somehow signal success or failure
-
+    return errors
 
 def probs_enhance_data(
     datasources: AllowableDataInputs,
