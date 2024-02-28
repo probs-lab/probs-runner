@@ -321,7 +321,7 @@ def probs_validate_data(
     datasources: AllowableDataInputs,
     working_dir: Optional[Union[os.PathLike, str]] = None,
     script_source_dir: Optional[Union[os.PathLike, str]] = None,
-) -> dict[str, str]:
+) -> Dict[str, str]:
     """Load `original_data_path`, run data validation script.
 
     :param datasources: List of :py:class:`Datasource` objects describing
