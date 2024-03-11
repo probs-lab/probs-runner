@@ -342,7 +342,8 @@ def probs_validate_data(
         for output_file in runner.files("data").glob("test_*.log"):
             test_name = output_file.stem.replace("test_", "") # filename without extension
             result = output_file.read_text()
-            if result:
+            if len(result.splitlines()) > 1:
+                result = ''.join(result.splitlines(keepends=True)[1:]) # Remove header
                 errors[test_name] = result
 
     return errors
