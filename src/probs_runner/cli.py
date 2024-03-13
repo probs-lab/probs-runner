@@ -101,8 +101,7 @@ def convert_ontology(obj, ontology, output):
 def validate_data(obj, inputs):
     "Validate converted RDF data."
 
-    click.echo(f"Checking {len(inputs)} inputs...", err=True)
-    click.echo(f"(make sure to run with '-vv' option to see the results)", err=True)
+    click.echo(f"Checking {len(inputs)} input{'s' if len(inputs) > 1 else ''}...", err=True)
 
     # Load data sources
     working_dir = obj["working_dir"]
