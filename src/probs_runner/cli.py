@@ -107,11 +107,18 @@ def validate_data(obj, inputs):
     # Load data sources
     working_dir = obj["working_dir"]
     script_source_dir = obj["script_source_dir"]
-    probs_validate_data(inputs, working_dir, script_source_dir)
+    errors = probs_validate_data(inputs, working_dir, script_source_dir)
 
-    # TODO: do something with the validation result. Currently you need to run
-    # this with debug output.
-
+    if not errors:
+        click.echo(f"Validation passed", err=True)
+        sys.exit(0)
+    else:
+        click.echo(f"Validation failed", err=True)
+        for error_type in errors.keys():
+            click.echo(f"{error_type}:", err=True)
+            click.echo(f"{errors[error_type]}", err=True)
+        sys.exit(1)
+    
 
 @cli.command()
 @click.argument("inputs", nargs=-1, type=click.Path(exists=True, path_type=pathlib.Path))
