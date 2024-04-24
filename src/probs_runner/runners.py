@@ -321,6 +321,7 @@ def probs_validate_data(
     datasources: AllowableDataInputs,
     working_dir: Optional[Union[os.PathLike, str]] = None,
     script_source_dir: Optional[Union[os.PathLike, str]] = None,
+    debug: Optional[bool] = False,
 ) -> int:
     """Load `original_data_path`, run data validation script.
 
@@ -328,11 +329,26 @@ def probs_validate_data(
     inputs, or paths to individual input files.
     :param working_dir: Path to setup runner in, defaults to a temporary directory
     :param script_source_dir: Path to copy scripts from
+    :param debug: Output .log files listing problems in data 
     """
+    
+    if debug:
+        debug_param = "debug"
+    else:
+        debug_param = ""
+
+    setup_script = [
+        # FIXME This is abusing the RDFox arguments, but it turns out that it
+        # works to set a variable called "1" before calling an RDFox script with
+        # no positional arguments, and the value of this variable appears as if
+        # it was a positional argument.
+        f'set 1 "{debug_param or ""}"'
+    ]
 
     runner = probs_run_module(
         "data-validation",
         datasources,
+        setup_script=setup_script,
         working_dir=working_dir,
         script_source_dir=script_source_dir,
     )
