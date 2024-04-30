@@ -97,8 +97,10 @@ def convert_ontology(obj, ontology, output):
 
 @cli.command()
 @click.argument("inputs", nargs=-1, type=click.Path(exists=True, path_type=pathlib.Path))
+@click.option("--debug/--no-debug", help="Debug RDF data", default=False)
+@click.option("--output", help="Output folder for log files", nargs=1, type=click.Path(exists=True, path_type=pathlib.Path))
 @click.pass_obj
-def validate_data(obj, inputs):
+def validate_data(obj, inputs, debug, output):
     "Validate converted RDF data."
 
     click.echo(f"Checking {len(inputs)} input{'s' if len(inputs) > 1 else ''}...", err=True)
@@ -106,7 +108,7 @@ def validate_data(obj, inputs):
     # Load data sources
     working_dir = obj["working_dir"]
     script_source_dir = obj["script_source_dir"]
-    errors = probs_validate_data(inputs, working_dir, script_source_dir)
+    errors = probs_validate_data(inputs, working_dir, script_source_dir, debug=debug, output_path=output)
 
     if errors == 0:
         click.echo(f"Validation passed", err=True)

@@ -322,6 +322,7 @@ def probs_validate_data(
     working_dir: Optional[Union[os.PathLike, str]] = None,
     script_source_dir: Optional[Union[os.PathLike, str]] = None,
     debug: Optional[bool] = False,
+    output_path: Optional[Union[os.PathLike, str]] = None,
 ) -> int:
     """Load `original_data_path`, run data validation script.
 
@@ -330,12 +331,16 @@ def probs_validate_data(
     :param working_dir: Path to setup runner in, defaults to a temporary directory
     :param script_source_dir: Path to copy scripts from
     :param debug: Output .log files listing problems in data 
+    :param output_path: Path to folder for log files, defaults to current directory
     """
-    
+
     if debug:
         debug_param = "debug"
     else:
         debug_param = ""
+
+    if output_path == None:
+        output_path = Path.cwd() 
 
     setup_script = [
         # FIXME This is abusing the RDFox arguments, but it turns out that it
@@ -355,7 +360,10 @@ def probs_validate_data(
 
     with runner:
         logger.debug("probs_validate_data: RDFox runner done")
+        for output_file in runner.files("data").glob("test_*.log"):
+            copy_from_rdfox(output_file, output_path)
         output_file = runner.files("data") / "valid.log"
+        copy_from_rdfox(output_file, output_path)
         result = output_file.read_text().splitlines()
         if result[1] == "true":
             return 0
