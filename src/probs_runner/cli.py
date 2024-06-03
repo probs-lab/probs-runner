@@ -122,8 +122,9 @@ def validate_data(obj, inputs):
 @cli.command()
 @click.argument("inputs", nargs=-1, type=click.Path(exists=True, path_type=pathlib.Path))
 @click.argument("output", nargs=1, type=click.Path(path_type=pathlib.Path))
+@click.option("--object-kbc/--process-kbc", help="Enhancement of object or process data", default=True)
 @click.pass_obj
-def kbc_hierarchy(obj, inputs, output):
+def kbc_hierarchy(obj, inputs, output, object_kbc):
     "Run enhancement scripts on PRObs RDF data."
 
     click.echo(f"Enhancing {len(inputs)} inputs with kbc-hierarchy...", err=True)
@@ -131,7 +132,7 @@ def kbc_hierarchy(obj, inputs, output):
     # Load data sources
     working_dir = obj["working_dir"]
     script_source_dir = obj["script_source_dir"]
-    probs_kbc_hierarchy(inputs, output, working_dir, script_source_dir)
+    probs_kbc_hierarchy(inputs, output, working_dir, script_source_dir, object_kbc=object_kbc, process_kbc= not object_kbc)
 
     click.echo(f"Output written to {click.format_filename(output)}.", err=True)
 

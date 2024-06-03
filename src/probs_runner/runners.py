@@ -372,6 +372,8 @@ def probs_kbc_hierarchy(
     output_path: Union[os.PathLike, str],
     working_dir: Optional[Union[os.PathLike, str]] = None,
     script_source_dir: Optional[Union[os.PathLike, str]] = None,
+    object_kbc: Optional[bool] = None,
+    process_kbc: Optional[bool] = None,
 ) -> None:
     """Load input data, apply rules to enhance, and copy result to `output_path`.
 
@@ -380,10 +382,27 @@ def probs_kbc_hierarchy(
     :param output_path: path to save the data
     :param working_dir: Path to setup rdfox in, defaults to a temporary directory
     :param script_source_dir: Path to copy scripts from
+    :param object_kbc: composition of objects
+    :param process_kbc: composition of processes (mutually exclusive to object_kbc)
     """
+
+    if object_kbc or (not process_kbc):
+        equivalence_composition="object"
+    else:
+        equivalence_composition="process"
+
+    setup_script = [
+        # FIXME This is abusing the RDFox arguments, but it turns out that it
+        # works to set a variable called "1" before calling an RDFox script with
+        # no positional arguments, and the value of this variable appears as if
+        # it was a positional argument.
+        f'set 1 "{equivalence_composition or ""}"'
+    ]
+
     runner = probs_run_module(
         "kbc-hierarchy",
         datasources,
+        setup_script=setup_script,
         working_dir=working_dir,
         script_source_dir=script_source_dir,
     )
