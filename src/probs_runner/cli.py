@@ -107,13 +107,14 @@ def validate_data(obj, inputs, debug_files):
     # Load data sources
     working_dir = obj["working_dir"]
     script_source_dir = obj["script_source_dir"]
-    errors = probs_validate_data(inputs, working_dir, script_source_dir, debug_files=debug_files)
+    valid = probs_validate_data(inputs, working_dir, script_source_dir, debug_files=debug_files)
 
-    if errors == 0:
+    if valid:
         click.echo(f"Validation passed", err=True)
+        sys.exit(0)
     else:
         click.echo(f"Validation failed", err=True)
-    sys.exit(errors)
+        sys.exit(1)
     
 
 @cli.command()

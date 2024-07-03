@@ -362,9 +362,9 @@ def probs_validate_data(
             for output_file in runner.files("data").glob("test_*.log"):
                 copy_from_rdfox(output_file, debug_files)
         if result[1] == "true":
-            return 0
+            return True
         else:
-            return 1 
+            return False 
 
 
 def probs_enhance_data(
