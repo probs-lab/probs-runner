@@ -322,7 +322,7 @@ def probs_validate_data(
     working_dir: Optional[Union[os.PathLike, str]] = None,
     script_source_dir: Optional[Union[os.PathLike, str]] = None,
     debug_files: Optional[Union[os.PathLike, str]] = None,
-) -> int:
+) -> bool:
     """Load `original_data_path`, run data validation script.
 
     :param datasources: List of :py:class:`Datasource` objects describing
