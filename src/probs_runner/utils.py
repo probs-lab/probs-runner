@@ -1,4 +1,5 @@
 from typing import Union
+import time
 import sys
 import os
 import shutil
@@ -55,13 +56,36 @@ def prepare_file_for_rdfox(
         return source
 
 
-def copy_from_rdfox(source: Union[os.PathLike, str], target: Union[os.PathLike, str]):
+def wait_for_file(filename: Union[os.PathLike, str], timeout: float):
+    """Poll for up to `timeout` seconds until `filename` is not empty."""
+    start_time = time.time()
+    while True:
+        if os.path.isfile(filename) and os.path.getsize(filename) > 0:
+            print(filename, time.time() - start_time)
+            return True
+        elapsed_time = time.time() - start_time
+        if elapsed_time > timeout:
+            return False
+        time.sleep(0.01)
+
+
+def copy_from_rdfox(
+    source: Union[os.PathLike, str], target: Union[os.PathLike, str], timeout=None
+):
     """Copy an output file, working around RDFox optional compression.
 
     On Linux/Mac, RDFox with gzip compress files ending with `.gz`, but on
     Windows this does nothing. This function applies gzip compression manually
     if needed.
+
+    If `timeout` is given, wait for up to `timeout` seconds for the file size to
+    be greater than zero; this is needed because RDFox can exit before it has
+    finished writing compressed data to the file.
+
     """
+
+    if timeout is not None:
+        wait_for_file(source, timeout)
 
     # Files from RDFox are not compressed on Windows, despite the extension. On
     # other platforms, determine based on whether the target filename looks like

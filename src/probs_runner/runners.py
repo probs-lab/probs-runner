@@ -271,7 +271,7 @@ def probs_convert_ontology(
     )
     with runner:
         logger.debug("probs_convert_ontology: RDFox runner done")
-        copy_from_rdfox(runner.files("data") / "probs_ontology_rules.dlog", output_path)
+        copy_from_rdfox(runner.files("data") / "probs_ontology_rules.dlog", output_path, timeout=10)
         logger.debug("probs_convert_ontology: Copy data done")
 
     # Should somehow signal success or failure
@@ -311,7 +311,7 @@ def probs_convert_data(
     )
     with runner:
         logger.debug("probs_convert_data: RDFox runner done")
-        copy_from_rdfox(runner.files("data/probs_original_data.nt.gz"), output_path)
+        copy_from_rdfox(runner.files("data/probs_original_data.nt.gz"), output_path, timeout=10)
         logger.debug("probs_convert_data: Copy data done")
 
     # Should somehow signal success or failure
@@ -389,7 +389,7 @@ def probs_kbc_hierarchy(
     )
     with runner:
         logger.debug("probs_enhance_data: RDFox runner done")
-        copy_from_rdfox(runner.files("data/probs_enhanced_data.nt.gz"), output_path)
+        copy_from_rdfox(runner.files("data/probs_enhanced_data.nt.gz"), output_path, timeout=10)
         logger.debug("probs_enhance_data: Copy data done")
 
     # Should somehow signal success or failure
