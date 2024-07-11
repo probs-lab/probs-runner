@@ -321,32 +321,51 @@ def probs_validate_data(
     datasources: AllowableDataInputs,
     working_dir: Optional[Union[os.PathLike, str]] = None,
     script_source_dir: Optional[Union[os.PathLike, str]] = None,
-) -> Dict[str, str]:
+    debug_files: Optional[Union[os.PathLike, str]] = None,
+) -> bool:
     """Load `original_data_path`, run data validation script.
 
     :param datasources: List of :py:class:`Datasource` objects describing
     inputs, or paths to individual input files.
     :param working_dir: Path to setup runner in, defaults to a temporary directory
     :param script_source_dir: Path to copy scripts from
+    :param debug_files: Path to folder for debug log files, defaults to no debugging
     """
+
+    if debug_files == None:
+        debug_param = ""
+    else:
+        debug_param = "debug"
+
+    setup_script = [
+        # FIXME This is abusing the RDFox arguments, but it turns out that it
+        # works to set a variable called "1" before calling an RDFox script with
+        # no positional arguments, and the value of this variable appears as if
+        # it was a positional argument.
+        f'set 1 "{debug_param or ""}"'
+    ]
 
     runner = probs_run_module(
         "data-validation",
         datasources,
+        setup_script=setup_script,
         working_dir=working_dir,
         script_source_dir=script_source_dir,
     )
-    errors = {}
+
     with runner:
         logger.debug("probs_validate_data: RDFox runner done")
-        for output_file in runner.files("data").glob("test_*.log"):
-            test_name = output_file.stem.replace("test_", "") # filename without extension
-            result = output_file.read_text()
-            if len(result.splitlines()) > 1:
-                result = ''.join(result.splitlines(keepends=True)[1:]) # Remove header
-                errors[test_name] = result
+        output_file = runner.files("data") / "valid.log"
+        result = output_file.read_text().splitlines()
+        if debug_files != None:
+            copy_from_rdfox(output_file, debug_files)
+            for output_file in runner.files("data").glob("test_*.log"):
+                copy_from_rdfox(output_file, debug_files)
+        if result[1] == "true":
+            return True
+        else:
+            return False 
 
-    return errors
 
 def probs_enhance_data(
     datasources: AllowableDataInputs,
