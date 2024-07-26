@@ -206,6 +206,17 @@ def probs_run_module(
     elif not isinstance(setup_script, list):
         setup_script = [setup_script]
 
+
+    setup_script += [
+        # FIXME This is abusing the RDFox arguments, but it turns out that it
+        # works to set a variable called "1" before calling an RDFox script with
+        # no positional arguments, and the value of this variable appears as if
+        # it was a positional argument.
+        
+        f'set {i+1} "{value}"'
+        for i, value in enumerate(module_args)
+    ]
+
     datasources = _prepare_datasources_arg(datasources)
 
     logger.debug("Running PRObs module %s (%s)", module, kwargs)
@@ -294,20 +305,12 @@ def probs_convert_data(
     :param fact_domain: RDFox fact domain to export
     """
 
-    setup_script = [
-        # FIXME This is abusing the RDFox arguments, but it turns out that it
-        # works to set a variable called "1" before calling an RDFox script with
-        # no positional arguments, and the value of this variable appears as if
-        # it was a positional argument.
-        f'set 1 "{fact_domain or ""}"'
-    ]
-
     runner = probs_run_module(
         "data-conversion",
         datasources,
-        setup_script=setup_script,
         working_dir=working_dir,
         script_source_dir=script_source_dir,
+        module_args=[fact_domain or ""],
     )
     with runner:
         logger.debug("probs_convert_data: RDFox runner done")
@@ -389,22 +392,19 @@ def probs_enhance_data(
 def probs_kbc_hierarchy(
     datasources: AllowableDataInputs,
     output_path: Union[os.PathLike, str],
-    working_dir: Optional[Union[os.PathLike, str]] = None,
-    script_source_dir: Optional[Union[os.PathLike, str]] = None,
+    **kwargs,
 ) -> None:
     """Load input data, apply rules to enhance, and copy result to `output_path`.
 
     :param datasources: List of :py:class:`Datasource` objects describing
     inputs, or paths to individual input files.
     :param output_path: path to save the data
-    :param working_dir: Path to setup rdfox in, defaults to a temporary directory
-    :param script_source_dir: Path to copy scripts from
+    :param kwargs: kwargs passed to `probs_run_module`
     """
     runner = probs_run_module(
         "kbc-hierarchy",
         datasources,
-        working_dir=working_dir,
-        script_source_dir=script_source_dir,
+        **kwargs,
     )
     with runner:
         logger.debug("probs_enhance_data: RDFox runner done")
