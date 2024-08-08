@@ -176,6 +176,23 @@ def _prepare_datasources_arg(datasources: AllowableDataInputs) -> List[Datasourc
     return [_convert(ds) for ds in ds_list]
 
 
+def _setup_script_parameters(*args, **kwargs):
+
+    # FIXME This is abusing the RDFox arguments, but it turns out that it
+    # works to set a variable called "1" before calling an RDFox script with
+    # no positional arguments, and the value of this variable appears as if
+    # it was a positional argument.
+
+    setup_script = []
+    for idx, param in enumerate(args):
+        setup_script.append(f'set {idx+1} "{param or ""}"')
+    kwarg_pos = len(setup_script)
+    for idx, key in enumerate(kwargs):
+        setup_script.append(f'set {2*idx+kwarg_pos+1} "{key or ""}"')
+        setup_script.append(f'set {2*idx+kwarg_pos+2} "{kwargs[key] or ""}"')
+    return setup_script 
+
+    
 def probs_run_module(
     module: str,
     datasources: AllowableDataInputs,
@@ -294,13 +311,7 @@ def probs_convert_data(
     :param fact_domain: RDFox fact domain to export
     """
 
-    setup_script = [
-        # FIXME This is abusing the RDFox arguments, but it turns out that it
-        # works to set a variable called "1" before calling an RDFox script with
-        # no positional arguments, and the value of this variable appears as if
-        # it was a positional argument.
-        f'set 1 "{fact_domain or ""}"'
-    ]
+    setup_script = _setup_script_parameters(f'{fact_domain or ""}')
 
     runner = probs_run_module(
         "data-conversion",
@@ -333,17 +344,11 @@ def probs_validate_data(
     """
 
     if debug_files == None:
-        debug_param = ""
+        debug_param = "no_debug"
     else:
         debug_param = "debug"
 
-    setup_script = [
-        # FIXME This is abusing the RDFox arguments, but it turns out that it
-        # works to set a variable called "1" before calling an RDFox script with
-        # no positional arguments, and the value of this variable appears as if
-        # it was a positional argument.
-        f'set 1 "{debug_param or ""}"'
-    ]
+    setup_script = _setup_script_parameters(debug=debug_param)
 
     runner = probs_run_module(
         "data-validation",
@@ -391,6 +396,8 @@ def probs_kbc_hierarchy(
     output_path: Union[os.PathLike, str],
     working_dir: Optional[Union[os.PathLike, str]] = None,
     script_source_dir: Optional[Union[os.PathLike, str]] = None,
+    *args,
+    **kwargs,
 ) -> None:
     """Load input data, apply rules to enhance, and copy result to `output_path`.
 
@@ -399,10 +406,15 @@ def probs_kbc_hierarchy(
     :param output_path: path to save the data
     :param working_dir: Path to setup rdfox in, defaults to a temporary directory
     :param script_source_dir: Path to copy scripts from
+    :param variant: Category for KBC, e.g. "process" 
     """
+ 
+    setup_script = _setup_script_parameters(*args, **kwargs)
+
     runner = probs_run_module(
         "kbc-hierarchy",
         datasources,
+        setup_script=setup_script,
         working_dir=working_dir,
         script_source_dir=script_source_dir,
     )
