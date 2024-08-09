@@ -344,9 +344,9 @@ def probs_validate_data(
     """
 
     if debug_files == None:
-        debug_param = "no_debug"
+        debug_param = "off"
     else:
-        debug_param = "debug"
+        debug_param = "on"
 
     setup_script = _setup_script_parameters(debug=debug_param)
 
@@ -360,10 +360,11 @@ def probs_validate_data(
 
     with runner:
         logger.debug("probs_validate_data: RDFox runner done")
-        output_file = runner.files("data") / "valid.log"
-        result = output_file.read_text().splitlines()
+        valid_file = runner.files("data") / "valid.log"
+        result = valid_file.read_text().splitlines()
         if debug_files != None:
-            copy_from_rdfox(output_file, debug_files)
+            copy_from_rdfox(valid_file, debug_files)
+            copy_from_rdfox(runner.files("data") / "test_status.csv", debug_files)
             for output_file in runner.files("data").glob("test_*.log"):
                 copy_from_rdfox(output_file, debug_files)
         if result[1] == "true":
