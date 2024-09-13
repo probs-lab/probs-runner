@@ -267,9 +267,9 @@ def probs_convert_ontology(
     working_dir: Optional[Union[os.PathLike, str]] = None,
     script_source_dir: Optional[Union[os.PathLike, str]] = None,
 ) -> None:
-    """Load a probs.ttl file, convert to Datalog rules and save to `output_path`.
+    """Load a ontology.nt file, convert to Datalog rules and save to `output_path`.
 
-    :param ontology: str contents or path to input ontology RDF data (e.g. `probs.ttl`)
+    :param ontology: str contents or path to input ontology RDF data (e.g. `ontology.nt`)
     :param output_path: Path to save the resulting rules to
     :param working_dir: Path to setup rdfox in, defaults to a temporary directory
     :param script_source_dir: Path to copy scripts from
@@ -277,7 +277,7 @@ def probs_convert_ontology(
 
     datasources = [
         # The ontology data itself
-        Datasource({"ontology/probs.ttl": ontology}),
+        Datasource({"data/ontology.nt": ontology}),
     ]
 
     runner = probs_run_module(
