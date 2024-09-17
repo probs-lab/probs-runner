@@ -311,7 +311,10 @@ def probs_convert_data(
     :param fact_domain: RDFox fact domain to export
     """
 
-    setup_script = _setup_script_parameters(f'{fact_domain or ""}')
+    if fact_domain:
+        setup_script = _setup_script_parameters("fact-domain", fact_domain)
+    else:
+        setup_script = None
 
     runner = probs_run_module(
         "data-conversion",
