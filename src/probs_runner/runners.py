@@ -343,9 +343,11 @@ def probs_validate_data(
     :param debug_files: Path to folder for debug log files, defaults to no debugging
     """
 
-    if debug_files == None:
+    if debug_files is None:
         debug_param = "off"
     else:
+        debug_files = Path(debug_files)
+        debug_files.mkdir(parents=True, exist_ok=True)
         debug_param = "on"
 
     setup_script = _setup_script_parameters(debug=debug_param)
@@ -363,10 +365,11 @@ def probs_validate_data(
         valid_file = runner.files("data") / "valid.log"
         result = valid_file.read_text().splitlines()
         if debug_files != None:
-            copy_from_rdfox(valid_file, debug_files)
-            copy_from_rdfox(runner.files("data") / "test_status.csv", debug_files)
+            copy_from_rdfox(valid_file, debug_files / "valid.log")
+            copy_from_rdfox(runner.files("data") / "test_status.csv",
+                            debug_files / "tests.csv")
             for output_file in runner.files("data").glob("test_*.log"):
-                copy_from_rdfox(output_file, debug_files)
+                copy_from_rdfox(output_file, debug_files / output_file.name)
         if result[1] == "true":
             return True
         else:
